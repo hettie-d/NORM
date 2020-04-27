@@ -9,10 +9,9 @@ create type phone_record as (
 drop type if exists email_record cascade;
 create type email_record as(
                   email_id bigint,
+	              email  text,
                   email_priority_id int,
-                  email_priority text,
-                  email_address text);
-                  account_number  text);
+                  email_priority text);
  drop type if exists account_record cascade;
  create type account_record as (
                 account_id  bigint,
@@ -25,7 +24,7 @@ create type email_record as(
                 );
                 
 create or replace function account_create(
-    p_object json
+    p_object json)
     returns setof text
     language 'plpgsql'
 as $BODY$
@@ -50,7 +49,7 @@ for v_rec in
   when v_rec.key ='first_name' then v_account_rec.first_name:=v_rec.value;
   when v_rec.key ='dob' then v_account_rec.dob:=v_rec.value;
   when v_rec.key='phones' then  v_phones_array:=v_rec.value;
-  when v_rec.key ='email_addresses' v_emails_array:=v_rec.value;
+  when v_rec.key ='email_addresses' then v_emails_array:=v_rec.value;
   else null;
 end  case;
 end loop;
@@ -60,10 +59,10 @@ insert into account (username, last_name, first_name, dob)
     returning account_id into v_account_id;
 --create phones
 for v_phone_rec in (select * from json_to_recordset(v_phones_array::json)
-                     as phone(phone_number text, phone_type_id int ) 
+                     as phone(phone text, phone_type_id int ) 
                      ) loop
             insert into phone (account_id, phone, phone_type_id)  
-                values (v_account_id,  v_phone_rec.phone_number, v_phone_rec.phone_type_id);    
+                values (v_account_id,  v_phone_rec.phone, v_phone_rec.phone_type_id);    
 end  loop;
 --create emails
 for v_email_rec in (select * from json_to_recordset(v_emails_array::json)
@@ -74,10 +73,61 @@ for v_email_rec in (select * from json_to_recordset(v_emails_array::json)
 end  loop;
 
 return query (
-select * from array_transport(account_search($$a.account_id=$$||quote_literal(v_account_id))));
+select * from array_transport(account_search_by_id(v_account_id)));
 end;
 
 $BODY$;
+
+create or replace function account_search_by_id(p_account_id bigint)
+returns account_record[]
+  language 'plpgsql'
+as $BODY$
+declare
+v_result account_record[];
+v_sql text;
+begin
+select array_agg(single_item)
+  from
+  (select
+     row (account_id ,
+          username,
+          first_name,
+          last_name,
+          dob ,
+          (select array_agg(row(phone_id,
+                        phone,
+                        p.phone_type_id,
+                        phone_type )::phone_record)
+                        from phone p 
+                             join phone_type pt using(phone_type_id)
+                         where p.account_id=a.account_id),
+           (select array_agg(row(email_id,
+                        email,
+                        e.email_priority_id,
+                        email_priority )::email_record)
+                        from email e 
+                             join email_priority ep using(email_priority_id)
+                         where e.account_id=a.account_id)
+                         )::account_record as single_item 
+           from account a 
+              where a.account_id=p_account_id )s
+         into v_result;
+    return (v_result);
+  
+end;
+$BODY$;    
+
+create or replace function account_select_by_id(p_account_id bigint)
+returns setof text
+language 'plpgsql'
+as
+$BODY$
+begin
+return query (
+select * from array_transport(account_search_by_id(p_account_id)));
+end;
+
+$BODY$; 
 
 
                   
