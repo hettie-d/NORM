@@ -130,4 +130,103 @@ end;
 $BODY$; 
 
 
+--set search_path to norm;
+
+create or replace function account_search(p_search_json json)
+returns account_record[]
+  language 'plpgsql'
+as $BODY$
+declare
+v_search_condition text:=null;
+--v_json_rec account_record;
+v_sql text;
+result account_record[];
+v_rec record;
+v_where_account text;
+v_where_email text;
+v_where_phone text;
+v_result account_record[];
+begin
+for v_rec in	
+ (select * from json_each_text(p_search_json) )
+ loop
+  case when v_rec.key in ('last_name', 'first_name','username') then
+              if v_where_account is null  
+                 then v_where_account:=v_rec.key ||' like '|| quote_literal(v_rec.value||'%' ); 
+                    else v_where_account:=v_where_account ||' and ' 
+                    ||v_rec.key ||' like '|| quote_literal(v_rec.value||'%' ); 
+                  end if;
+       when v_rec.key ='account_id' then 
+             if v_where_account is null  
+                 then v_where_account:='a1.account_id='|| v_rec.value;
+                    else v_where_account:=v_where_account ||' and ' 
+                    ||v_rec.key ||'='|| v_rec.value;     
+                  end if;
+     when v_rec.key = 'phone' then
+            v_where_phone :=' phone like '|| quote_literal(v_rec.value||'%' ) ;
+     when v_rec.key = 'email' then
+            v_where_email :=' email like '|| quote_literal(v_rec.value||'%' ) ;
+    else null;
+  end case; 
+  end loop; 
+v_search_condition:=concat_ws(' intersect ',  
+$$select a1.account_id from account a1
+  where $$||
+  v_where_account,
+ $$select account_id from phone where $$ ||
+    v_where_phone ,
+    $$select account_id from email
+where $$||
+v_where_email);
+
+v_sql:=$sql$
+select array_agg(single_item)
+  from
+  (select
+     row (account_id ,
+          username,
+          first_name,
+          last_name,
+          dob ,
+          (select array_agg(row(phone_id,
+                        phone,
+                        p.phone_type_id,
+                        phone_type )::phone_record)
+                        from phone p 
+                             join phone_type pt using(phone_type_id)
+                         where p.account_id=a.account_id),
+           (select array_agg(row(email_id,
+                        email,
+                        e.email_priority_id,
+                        email_priority )::email_record)
+                        from email e 
+                             join email_priority ep using(email_priority_id)
+                         where e.account_id=a.account_id)
+                         )::account_record as single_item 
+           from account a 
+              where a.account_id in (
+              $sql$||
+              v_search_condition||
+				  $sql$
+              )
+               )s
+$sql$;
+
+execute v_sql into v_result;
+return (v_result);
+  
+end;
+$BODY$; 
+
+create or replace function account_select(p_search_json json)
+returns setof text
+language 'plpgsql'
+as
+$BODY$
+begin
+return query (
+select * from array_transport(account_search(p_search_json)));
+end;
+
+$BODY$; 
                   

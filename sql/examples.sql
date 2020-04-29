@@ -9,6 +9,16 @@ select * from account_create($${
 }
 $$::json);
 
-elect * from account_search_by_id(1);
+select * from account_search_by_id(1);
+select * from account_select_by_id(1);
+
+select * from account_select('{"last_name":"john", "username":"ali"}'::json);
+select * from account_select('{"last_name":"john"}'::json)
+select * from account_select('{"last_name":"john", "username":"john"}'::json)
+select * from account_select('{"first_name":"john", "username":"john"}'::json)
+select * from account_select('{"username":"alic","phone":"202"}'::json)
+select * from account_select('{"phone":"202"}'::json);
+select * from account_select('{"last_name":"john", "email":"john"}'::json)
+
 
 
