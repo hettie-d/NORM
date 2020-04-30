@@ -229,4 +229,113 @@ select * from array_transport(account_search(p_search_json)));
 end;
 
 $BODY$; 
+
+
+--set search_path to norm
+create or replace function account_update(
+    p_object json,
+    p_account_id bigint)
+    returns setof text
+    language 'plpgsql'
+as $BODY$
+
+declare
+v_rec record;
+v_account_update text;
+v_phones_array text;
+v_phone_rec record;
+v_phone_each record;
+v_phone_id bigint;
+v_command text;
+v_phone_update text;
+v_emails_array text;
+v_email_rec record;
+v_email_each record;
+v_email_id bigint;
+v_email_update text;
+begin
+for v_rec in
+ (select * from json_each_text(p_object) )
+ loop
+  case 
+  when v_rec.key in ('username','last_name','first_name','dob')
+     then v_account_update:=concat_ws(', ', v_account_update,v_rec.key||'='||quote_literal(v_rec.value)) ;
+  when v_rec.key='phones' then  v_phones_array:=v_rec.value;
+  when v_rec.key ='email_addresses' then v_emails_array:=v_rec.value;
+  else null;
+end  case;
+end loop;
+---update account
+if v_account_update is not null then
+   execute  ($$update account set $$|| v_account_update||$$
+    where account_id=$$||p_account_id::text);
+   end if; 
+ --update/insert/delete phones
+for v_phone_rec in (select  * from json_array_elements_text(v_phones_array::json) ) loop
+   ---for each phone record
+   if v_phone_rec is not NULL then
+       v_phone_id:=null;
+       v_command :=null;
+       v_phone_update:=null;
+    for v_phone_each in (select * from json_each_text(v_phone_rec.value::json))
+     loop
+     case 
+     when v_phone_each.key='phone_id' then  v_phone_id:=v_phone_each.value;
+     when v_phone_each.key='command' then v_command:=v_phone_each.value;
+     when v_phone_each.key in ('phone', 'phone_type_id')
+       then v_phone_update:=concat_ws(', ',v_phone_update,v_phone_each.key||'='||quote_literal(v_phone_each.value)) ;
+    else null;
+  end case;
+ end loop; --for each phone jso
+   if lower(v_command )= 'delete' and v_phone_id is not null
+    then delete from phone where phone_id=v_phone_id;
+    end if;
+   if v_phone_id is null
+     then insert into phone (account_id) 
+             values (p_account_id) returning phone_id into v_phone_id;
+   end if;
+   if v_phone_update is not null then
+   execute ($$update phone set $$||v_phone_update||$$
+                 where phone_id=$$||v_phone_id::text)  ;
+   end if;--update
+   end if;---if phone exists
+end loop; ---for all phones
+
+
+--update/insert/delete emails
+for v_email_rec in (select  * from json_array_elements_text(v_emails_array::json) ) loop
+   ---for each email record
+   if v_email_rec is not NULL then
+       v_email_id:=null;
+       v_command :=null;
+       v_email_update:=null;
+    for v_email_each in (select * from json_each_text(v_email_rec.value::json))
+     loop
+     case 
+     when v_email_each.key='phone_id' then  v_email_id:=v_email_each.value;
+     when v_email_each.key='command' then v_command:=v_email_each.value;
+     when v_email_each.key in ('email', 'email_priority_id')
+       then v_email_update:=concat_ws(', ',v_email_update,v_email_each.key||'='||quote_literal(v_email_each.value)) ;
+    else null;
+  end case;
+ end loop; --for each phone jso
+   if lower(v_command )= 'delete' and v_email_id is not null
+    then delete from email where email_id=v_email_id;
+    end if;
+   if v_email_id is null
+     then insert into email (account_id) 
+             values (p_account_id) returning email_id into v_email_id;
+   end if;
+   if v_email_update is not null then
+   execute ($$update email set $$||v_email_update||$$
+                 where email_id=$$||v_email_id::text)  ;
+   end if;--update
+   end if;---if email exists
+end loop; ---for all emails
+
+return query (
+select * from array_transport(account_search_by_id(p_account_id)));
+end;
+
+$BODY$;
                   
