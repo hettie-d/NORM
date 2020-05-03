@@ -23,5 +23,29 @@ The only published paper on NORM:
  * sql directory contains a working example of NORM usage. 
  * to install an example, run the \_load.all file from the sql directory
  * see file sql\examples.sql for usage examples
+ 
+ ## More on the NORM example
+ 
+ _create_tables.sql_  creates three tables: account, phone and email and some lookiups.
+ 
+ _initial_data_insert.sql_ does exactly what you think it does
+ 
+ _array_transport.sql_ creates an array_transport funcion. That is the only function you want to save for your future usage, if you want to try NORM approach in your company.
+ 
+ _account_pkg.sql_  presents the NORM approach. In our approach, we combine the UDT definitions and corresponding functions into one file, which we call
+ a _package_, refrencing Oracle packages. 
+ 
+ It includes types definitions, _account\_create_ function, _account\_search\_by\_id_ for simple search
+ and _account\_search_ for complex search on the combination of criteria. The matching "select" functions
+ convert the output into JSON converted to text for data transfer purposes.
+ 
+ Please refer to the presentation to learn why we are doing a transformation as a separate step. 
+ 
+ Finally,the _account_update_  function performs the update of complex object. IN addition to update, 
+ it allows to insert and delete deatail objects. 
+ 
+ Note, that both insert and update functions also return new/modified object(s)
+ 
+ 
 
 
