@@ -37,7 +37,9 @@ select * from account_update($${
  $$::json, 1);
 	
  
- 
+ select * from account_update($${
+"email_addresses":[{"email":"new.email@hotmail.com", "email_priority_id":"1"}]}
+ $$::json, 3);
 
 
 
