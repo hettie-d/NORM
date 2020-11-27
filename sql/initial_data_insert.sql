@@ -1,4 +1,4 @@
-set searchpath to norm;
+set search_path to norm;
 insert into norm.account(username, first_name, last_name, dob)
 values ('aliceacct1', 'alice','johns','1996-04-01');
 
