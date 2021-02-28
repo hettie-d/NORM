@@ -15,6 +15,10 @@
 The only published paper on NORM:
 
  https://link.springer.com/chapter/10.1007%2F978-3-030-38919-2_54
+
+## The most recent presentation of NORM (PostgresBuild2020, online) can be found here:
+
+[Download Link](https://drive.google.com/file/d/11eO_9_3Oh2G8UlEDD6vvGxCy_vgVWUBg/view?usp=sharing)
  
  ##  TOC:
  
