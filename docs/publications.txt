@@ -1,0 +1,9 @@
+
+1. Henrietta Dombrovskaya, Jeff Czaplewski, and Boris Novikov. Connecting galaxies: Bridging the gap between databases and applications. In  SOFSEM 2020: Theory and Practice of Computer Science - 46th International Conference on Current Trends in Theory and Practice of Informatics, SOFSEM 2020, Limassol, Cyprus, January 20-24, 2020, Proceedings, volume 12011 of Lecture Notes in Computer Science, pages 648–656. Springer, 2020 .
+
+https://link.springer.com/chapter/10.1007%2F978-3-030-38919-2_54)
+
+2. Dombrovskaya, Henrietta, Novikov, Boris, Bailliekova, Anna: PostgreSQL Query Optimization: The Ultimate Guide to Building Efficient Queries. Apress, 2021, XX+280 pp. Book ISBN 978-1-4842-6885-8, Softcover ISBN 978-1-4842-6884-1.
+
+https://www.apress.com/gp/book/9781484268841
+

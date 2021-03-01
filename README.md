@@ -1,33 +1,30 @@
-# NORM
+# What is NORM?
  
  NORM stands for No ORM framework. NORM is not a PosgreSQL extention, not a library, and not a set of functions.
  
- NORM is an approach (a technology) which allows object-oriented applications to interact with relational databases
+ NORM is a methodology which allows object-oriented applications to interact with relational databases
  directly, without involving any ORM. Why do we want to avoid ORM? Because it negatively impacts application performance.
  
- The doc directory of the repo contains the ppt of the presentations from SOFSEM 2020 conference. 
- Please take a look to find out why NORM was developed, and what are the advantages of this approach.
- 
- The sql directory contains a working example of how to build PostgreSQL types and functions using NORM technology.
+ This meethodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov]
+(https://github.com/bn1206) and was fully impolemented at Braviant Holidings, Chicago IL.
 
- ## Publications
- 
-The only published paper on NORM:
+## What's in the repo?
 
- https://link.springer.com/chapter/10.1007%2F978-3-030-38919-2_54
-
-## The most recent presentation of NORM (PostgresBuild2020, online) can be found here:
-
-[PostgresBuild 2020 recording](https://drive.google.com/file/d/11eO_9_3Oh2G8UlEDD6vvGxCy_vgVWUBg/view?usp=sharing)
+ The purpose of this repo is to provide a working example of the usage of NORM methodology.
  
  ##  TOC:
  
- * doc directory contains a Power Point presentation from 
- SOFSEM 2020 conference, where NORM was first officially announced. 
- * sql directory contains a working example of NORM usage. 
- * to install an example, run the \_load.all file from the sql directory
- * see file sql\examples.sql for usage examples
+ * The doc directory contains: a list of publications on NORM and a ppt of the  presentation from SOFSEM 2020 conference, where NORM was first officially announced.Take a look to find out why NORM was developed, and what are the advantages of this approach.
+ * The sql directory contains a working example of NORM usage. Take a look to see to build PostgreSQL types and functions using NORM technology.
+ * To install this example, run the \_load.all file from the sql directory
+ * See file sql\examples.sql for usage
  
+## Quick Start
+
+Watch the videou below from PostgresBuild2020 Conference, online 
+
+[PostgresBuild 2020 recording](https://drive.google.com/file/d/11eO_9_3Oh2G8UlEDD6vvGxCy_vgVWUBg/view?usp=sharing)
+
  ## More on the NORM example
  
  _create_tables.sql_  creates three tables: account, phone and email and some lookiups.
