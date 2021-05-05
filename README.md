@@ -5,7 +5,7 @@
  NORM is a methodology which allows object-oriented applications to interact with relational databases
  directly, without involving any ORM. Why do we want to avoid ORM? Because it negatively impacts application performance.
  
- This meethodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206) and was fully impolemented at Braviant Holidings, Chicago IL.
+ This meethodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206) and was fully implemented at Braviant Holidings, Chicago IL.
 
 ## What's in the repo?
 
