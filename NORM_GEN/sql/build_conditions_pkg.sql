@@ -1,10 +1,10 @@
-drop type  if exists cond_record cascade;
-create type cond_record as (
+drop type  if exists norm_gen.cond_record cascade;
+create type norm_gen.cond_record as (
 gp text,
 tbl text,
 cond text);
 
-create or replace function build_object_term (
+create or replace function norm_gen.build_object_term (
 t_par text,
 t_obj text,
 row_conds text,
@@ -23,7 +23,7 @@ select format($$ %I IN (
     || row_conds ||   $$) $$;
 $body$;
 
-create or replace function build_simple_term (
+create or replace function norm_gen.build_simple_term (
 t_key text,
 t_op text,
 t_value text,
@@ -43,8 +43,8 @@ select format ($$ %I $$,
 $body$;
 
 
-create or replace function nest_cond (p_schema_id int,
-   c_in cond_record [] ) returns cond_record []
+create or replace function norm_gen.nest_cond (p_schema_id int,
+   c_in norm_gen.cond_record [] ) returns cond_record []
 language sql
 as
 $body$
@@ -56,12 +56,12 @@ select
    tso.db_table d_table_name,
    tso.db_pk_col  d_pk,
    tso.db_parent_fk_col  d_parent_fk
-from transfer_schema_object tso
+from norm_gen.transfer_schema_object tso
 where tso.transfer_schema_id = p_schema_id
 )
 select
    case when array_length(cond_arr,1) = 1 then cond_arr
-         else nest_cond (p_schema_id,cond_arr)
+         else norm_gen.nest_cond (p_schema_id,cond_arr)
          end
 from
 (select array_agg(
@@ -102,7 +102,7 @@ from
 $body$;
 
 
-create or replace function build_conditions (p_schema_id int, p_in json)
+create or replace function norm_gen.build_conditions (p_schema_id int, p_in json)
 returns text
 language SQL as
 $body$
@@ -131,21 +131,21 @@ per_object as (
           $and$ AND $and$
           )  as conds
    from raw_conditions r
-       left join transfer_schema_key  t
+       left join norm_gen.transfer_schema_key  t
           on r.key = t.t_key_name
           and r.tbl =
           (select  t_object
-          from transfer_schema_object o1
+          from norm_gen.transfer_schema_object o1
           where o1.transfer_schema_object_id = t.transfer_schema_object_id)
       and   p_schema_id  =
        (select  transfer_schema_id
-          from transfer_schema_object o2
+          from norm_gen.transfer_schema_object o2
           where o2.transfer_schema_object_id = t.transfer_schema_object_id)
    where position ('{'in value) = 0
    group by  gp, tbl
    )
 select  cond
-from unnest (nest_cond (p_schema_id,
+from unnest (norm_gen.nest_cond (p_schema_id,
 (select
    array_agg(
     (gp, tbl, conds)::cond_record)
