@@ -7,6 +7,11 @@
  
  This meethodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206) and was fully implemented at Braviant Holidings, Chicago IL.
 
+## Important update
+On Apr 13 2022, we added a new subdirectory NORM_GEN for the Phase II of NORM project:
+
+Automation of the NORM functions generation. Stay tuned!
+
 ## What's in the repo?
 
  The purpose of this repo is to provide a working example of the usage of NORM methodology.
