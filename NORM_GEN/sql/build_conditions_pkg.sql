@@ -14,7 +14,7 @@ d_fk text) returns text
 language SQL as
 $body$
 select format($$ %I IN (
-   select %I from %I where
+   select %I from %s where
    $$,
       coalesce(d_par_pk, $$PK_$$   || t_par),
       coalesce(d_fk,  $$FK_$$ || t_obj || $$_$$ || t_par),
@@ -44,7 +44,7 @@ $body$;
 
 
 create or replace function norm_gen.nest_cond (p_schema_id int,
-   c_in norm_gen.cond_record [] ) returns cond_record []
+   c_in norm_gen.cond_record [] ) returns norm_gen.cond_record []
 language sql
 as
 $body$
@@ -53,7 +53,7 @@ select
    tso.t_object,
    tso.t_parent_object,
    t_parent_object,
-   tso.db_table d_table_name,
+   tso.db_schema||'.'||tso.db_table d_table_name,
    tso.db_pk_col  d_pk,
    tso.db_parent_fk_col  d_parent_fk
 from norm_gen.transfer_schema_object tso
@@ -65,7 +65,7 @@ select
          end
 from
 (select array_agg(
-            (gp, tbl, cond)::cond_record
+            (gp, tbl, cond)::norm_gen.cond_record
             ) cond_arr
  from
  (select gp,
@@ -75,7 +75,7 @@ AND ') as cond
 from (
 select p.gp as gp,
        p.tbl as tbl,
-       build_object_term(
+       norm_gen.build_object_term(
        c.gp,  c.tbl, c.cond, tc.d_table_name, tp.d_pk, tc.d_parent_fk)
         as cond
 from
@@ -125,7 +125,7 @@ per_object as (
    select r.gp,
           r.tbl,
           string_agg(
-       build_simple_term (
+       norm_gen.build_simple_term (
            r.key,NULL,  /* t_op, */
         r.value,  t.db_col, t.db_type_calc),
           $and$ AND $and$
@@ -148,7 +148,7 @@ select  cond
 from unnest (norm_gen.nest_cond (p_schema_id,
 (select
    array_agg(
-    (gp, tbl, conds)::cond_record)
+    (gp, tbl, conds)::norm_gen.cond_record)
 from per_object)
 )
 );
