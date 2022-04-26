@@ -20,7 +20,7 @@ create type norm_gen.t_d_object as (
 t_parent_object text,
 t_parent_object_id int,
   record_type text,
-  embeded norm_gen.t_d_link[],
+  embedded norm_gen.t_d_link[],
   properties json
   );
 drop type if exists norm_gen.json_schema_object cascade;
@@ -134,7 +134,7 @@ select * from  norm_gen.transfer_schema_object
 end; $body$;
 
 drop function  if exists  norm_gen.save_schema_object_key (p_transfer_schema_id int) cascade;
-create or replace function save_norm_gen.schema_object_key (p_transfer_schema_id int)
+create or replace function norm_gen.save_schema_object_key (p_transfer_schema_id int)
 returns setof norm_gen.transfer_schema_key
 language plpgsql
 as
@@ -151,7 +151,8 @@ insert into norm_gen.transfer_schema_key(
    db_col,
    db_type,
    fk_col,
-   ref_object
+   ref_object,
+   key_position
 )
 select
    s.transfer_schema_object_id,
@@ -166,7 +167,8 @@ select
       s.db_schema || $$.$$ || coalesce (km.db_table, s.db_table)
       || $$.$$ || coalesce(km.db_col, k.key)|| $$%type$$),
    km.fk_col,
- split_part(p.items->>'$ref', '/',3)
+ split_part(p.items->>'$ref', '/',3),
+ row_number()  over(partition by s.transfer_schema_object_id ) 
 from  norm_gen.transfer_schema_object s,
    json_each(s.properties) k,
    json_populate_record (NULL::norm_gen.json_schema_key,   k.value) p,

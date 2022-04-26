@@ -50,5 +50,6 @@ create table norm_gen.transfer_schema_key(
    db_type text,
    fk_col  text,  
    ref_object text,
-   db_type_calc text
+   db_type_calc text,
+   key_position int
 );
