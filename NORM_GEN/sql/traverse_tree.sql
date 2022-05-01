@@ -47,7 +47,7 @@ where    ob.t_object = p_root_object
 $body$;
 /*
 drop function if exists norm_gen.generate_types( p_schema_title text);
-create function norm_gen.generate_types( p_schema_title text)
+create or replace function norm_gen.generate_types( p_schema_title text)
 returns text
 language sql as
 $body$
@@ -55,7 +55,6 @@ select norm_gen.traverse_tree (transfer_schema_id, transfer_schema_root_object)
   from norm_gen.transfer_schema
  where transfer_schema_name=p_schema_title
 ;
-end;
 $body$; 
 */
 --select  traverse_tree (transfer_schema_name, transfer_schema_root_object) 
