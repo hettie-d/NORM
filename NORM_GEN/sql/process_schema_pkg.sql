@@ -53,7 +53,7 @@ create type  norm_gen.td_key_mapping as (
 drop function if exists norm_gen.save_transfer_schema (p_schema json,
  p_delete boolean) cascade;
 
-create function norm_gen.save_transfer_schema (p_schema json,
+create or replace function norm_gen.save_transfer_schema (p_schema json,
 p_delete boolean default false)
 returns int
 language plpgsql
@@ -81,7 +81,7 @@ select
       split_part(p.items->>'$ref', '/',3) as root_object,
       definitions,
       db_mapping->>'db_schema'
-      from  json_populate_record (NULL::norm_gen.json_schema_top,p_schema)
+      from  json_populate_record (NULL::norm_gen.json_schema_top,p_schema) p
       returning transfer_schema_id into v_transfer_schema_id;
       return v_transfer_schema_id;
 end ;$body$;
