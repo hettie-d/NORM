@@ -29,7 +29,8 @@ where
      $$||
   --- $$ ---generate type columns here $$ || 
   (select 
-      string_agg(db_col  || $$  $$ || db_type_calc, $$,
+      string_agg(db_col  || $$  $$ || 
+      coalesce (db_type_calc,db_type), $$,
       $$) 
 from norm_gen.transfer_schema_key k
 join  norm_gen.transfer_schema_object   ob

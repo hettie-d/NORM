@@ -162,12 +162,30 @@ select
    p."type"as t_key_type,
    p.format as t_key_format,
    p.items as t_object_items,
-   coalesce (km.db_table, s.db_table) as db_table,
+   coalesce (km.db_table, 
+      case 
+      when km.db_source_alias is not null then
+           (select db_table 
+           from        unnest (s.link) al
+           where al.alias = km.db_source_alias
+           )
+      else  s.db_table
+      end
+      ) as db_table,
    km.db_source_alias,
    coalesce (km.db_col, k.key) as db_col,
    coalesce(km.db_type,
-      s.db_schema || $$.$$ || coalesce (km.db_table, s.db_table)
-      || $$.$$ || coalesce(km.db_col, k.key)|| $$%type$$),
+      s.db_schema || $$.$$ || 
+coalesce (km.db_table, 
+      case 
+      when km.db_source_alias is not null then
+           (select db_table 
+           from        unnest (s.link) al
+           where al.alias = km.db_source_alias
+           )
+      else  s.db_table
+      end)
+     || $$.$$ || coalesce(km.db_col, k.key)|| $$%type$$),
    km.fk_col,
  split_part(p.items->>'$ref', '/',3),
  (select transfer_schema_object_id from norm_gen.transfer_schema_object
