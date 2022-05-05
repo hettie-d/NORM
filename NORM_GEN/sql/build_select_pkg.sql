@@ -18,10 +18,7 @@ FROM  %I %I $$, p_table, p_alias) ||
    )
    as from_clause;
 $bbody$;
-/*
-select norm_gen.build_from_clause (db_table, db_table || 's', link)
- from norm_gen.transfer_schema_object;
-*/
+
 
 drop function if exists norm_gen.build_nested_row;
 create or replace function norm_gen.build_nested_row (
@@ -63,11 +60,8 @@ order by  key_position) k
 || $$)::$$  || p_row_type 
  as nested_object;
 $body$;
-/*
-select norm_gen.build_nested_row (transfer_schema_id,
- transfer_schema_object_id, db_record_type)
-from norm_gen.transfer_schema_object;
-*/
+
+
 drop function if exists norm_gen.nested_root;
 create or replace function norm_gen.nested_root(
    p_hierarchy text) returns text
@@ -87,7 +81,3 @@ create or replace function norm_gen.nested_root(
    where s.transfer_schema_name = p_hierarchy;
    $body$;
 	
-/*
-select  norm_gen.nested_root(transfer_schema_name) nested_qyery
-from  norm_gen.transfer_schema;
-*/
