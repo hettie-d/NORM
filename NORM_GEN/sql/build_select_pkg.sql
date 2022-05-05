@@ -5,14 +5,15 @@ p_table text, p_alias text, p_link norm_gen.t_d_link[ ]
 language SQL as
 $bbody$
 select
+format (
  $$  
-FROM $$ || p_table ||$$ $$|| p_alias ||
+FROM  %I %I $$, p_table, p_alias) ||
 ---- embedded ----
-(select  coalesce( string_agg(  $$
-   JOIN $$ 
-   || al.db_table || ' ' || al.alias || 
-   $$ ON $$ || al.alias ||'.' || al.pk_col ||$$=$$ ||
-   p_alias ||$$.$$ || al.fk_col, $$  $$),$$ $$)
+(select  coalesce( string_agg(  
+   format ($$
+   JOIN %I %I  ON  %I.%I = %I.%I $$,  
+   al.db_table,  al.alias,  al.alias, al.pk_col,   p_alias,  al.fk_col),
+    $$  $$),$$ $$)
    from unnest(p_link) al
    )
    as from_clause;
