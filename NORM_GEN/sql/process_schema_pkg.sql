@@ -17,8 +17,8 @@ create type norm_gen.t_d_object as (
   db_table text,
   pk_col text,
   parent_fk_col text,
-t_parent_object text,
-t_parent_object_id int,
+  t_parent_object text,
+  t_parent_object_id int,
   record_type text,
   embedded norm_gen.t_d_link[],
   properties json
@@ -105,32 +105,34 @@ from norm_gen.transfer_schema
 delete from norm_gen.transfer_schema_object
   where transfer_schema_id=p_transfer_schema_id;
 insert into norm_gen.transfer_schema_object
-(transfer_schema_id,
- t_object,
-db_schema,
-db_table,
-db_pk_col,
-db_parent_fk_col,
-db_record_type,
-link ,
-properties)
-select p_transfer_schema_id,
-d.key as t_object_name,
-coalesce(m.db_schema,
-      v_dflt_schema),
-m.db_table,
-m.pk_col,
-m.parent_fk_col,
-m.record_type,
-m.embedded,
-f.properties
-  from   (select * from   json_each (v_definitions )) d,
-        json_populate_record (NULL::norm_gen.json_schema_object, d.value)f,
-        json_populate_record (
-         NULL::norm_gen.t_d_object,  f.db_mapping) m
-      ;
+   (
+   transfer_schema_id,
+   t_object,
+   db_schema,
+   db_table,
+   db_pk_col,
+   db_parent_fk_col,
+   db_record_type,
+   link ,
+   properties
+   )
+select 
+   p_transfer_schema_id,
+   d.key as t_object_name,
+   coalesce(m.db_schema, v_dflt_schema),
+   m.db_table,
+   m.pk_col,
+   m.parent_fk_col,
+   m.record_type,
+   m.embedded,
+   f.properties
+from  (select * from json_each (v_definitions )) d,
+       json_populate_record (NULL::norm_gen.json_schema_object, d.value)f,
+       json_populate_record (
+       NULL::norm_gen.t_d_object,  f.db_mapping) m
+;
 return query
-select * from  norm_gen.transfer_schema_object
+   select * from  norm_gen.transfer_schema_object
       where transfer_schema_id=p_transfer_schema_id;
 end; $body$;
 
@@ -141,7 +143,8 @@ language plpgsql
 as
 $body$
 begin
-insert into norm_gen.transfer_schema_key(
+insert into norm_gen.transfer_schema_key
+   (
    transfer_schema_object_id,
    t_key_name,
    t_key_type,
@@ -212,29 +215,41 @@ t_parent_object =(select  po.t_object from norm_gen.transfer_schema_key k
 
 update norm_gen.transfer_schema_key k 
 set db_type_calc =(
-select  ob.db_schema||'.'||ob.db_record_type  
-from norm_gen.transfer_schema_object ob
-where ob.transfer_schema_object_id=k.ref_object_id)
+              select  
+                  ob.db_schema||'.'||ob.db_record_type  
+              from norm_gen.transfer_schema_object ob
+              where ob.transfer_schema_object_id=k.ref_object_id
+              )
 	where  t_key_type = $$object$$
-   and k.transfer_schema_object_id in (
-				    select transfer_schema_object_id from norm_gen.transfer_schema_object
-				       where transfer_schema_id=p_transfer_schema_id )
+         and k.transfer_schema_object_id in (
+				       select transfer_schema_object_id 
+				       from norm_gen.transfer_schema_object
+				       where transfer_schema_id=p_transfer_schema_id 
+				       )
 ;
 /*correctly assign db types for arrays of records */
 
 update norm_gen.transfer_schema_key k 
 set db_type_calc =(
-select  ob.db_schema||'.'||ob.db_record_type ||'[]'
-from norm_gen.transfer_schema_object ob
-where ob.transfer_schema_object_id=k.ref_object_id)
-	where  t_key_type = $$array$$
-   and k.transfer_schema_object_id in (
-				    select transfer_schema_object_id from norm_gen.transfer_schema_object
-				       where transfer_schema_id=p_transfer_schema_id )
-;
+               select 
+                   ob.db_schema||'.'||ob.db_record_type ||'[]'
+               from norm_gen.transfer_schema_object ob
+               where ob.transfer_schema_object_id=k.ref_object_id
+               )
+ where  t_key_type = $$array$$
+         and k.transfer_schema_object_id in (
+               				    select transfer_schema_object_id 
+               				    from norm_gen.transfer_schema_object
+               				    where transfer_schema_id=p_transfer_schema_id 
+               				    )
+; 
 return query select * from norm_gen.transfer_schema_key
-  where transfer_schema_object_id in (select transfer_schema_object_id
-      from norm_gen.transfer_schema_object  where transfer_schema_id =p_transfer_schema_id );
+       where transfer_schema_object_id in (
+           select transfer_schema_object_id
+           from norm_gen.transfer_schema_object  
+           where transfer_schema_id =p_transfer_schema_id 
+           )
+;
 end;$body$;
 
 create or replace function norm_gen.update_db_type (p_transfer_schema_id int)
@@ -244,21 +259,27 @@ as
 $body$
 begin
 update norm_gen.transfer_schema_key k set 
-db_type_calc = (select t.typname  :: text
-   from pg_class c 
-     JOIN pg_attribute a ON c.oid = a.attrelid and 
-        c.relname=k.db_table and attname=k.db_col
-        JOIN pg_namespace n ON n.oid = c.relnamespace 
-				and n.nspname=(select db_schema from norm_gen.transfer_schema_object
-							  where transfer_schema_object_id=k.transfer_schema_object_id )
-             join pg_type t on atttypid =t.oid
+   db_type_calc = (
+      select 
+         t.typname  :: text
+       from pg_class c 
+       join pg_attribute a on c.oid = a.attrelid 
+                           and c.relname=k.db_table and attname=k.db_col
+        join pg_namespace n on n.oid = c.relnamespace 
+				                    and n.nspname=(
+				                    select db_schema 
+				                    from norm_gen.transfer_schema_object
+							              where transfer_schema_object_id=k.transfer_schema_object_id 
+							              )
+         join pg_type t on atttypid =t.oid
 				)
-				where  transfer_schema_object_id in (
-				    select transfer_schema_object_id from norm_gen.transfer_schema_object
+ where transfer_schema_object_id in (
+				    select transfer_schema_object_id 
+				    from norm_gen.transfer_schema_object
 				    where transfer_schema_id=p_transfer_schema_id )
-				    and t_key_type not in  ('array', 'object');
+				           and t_key_type not in  ('array', 'object');
 				    
 return query select * from norm_gen.transfer_schema_key
-  where transfer_schema_object_id in (select transfer_schema_object_id
+       where transfer_schema_object_id in (select transfer_schema_object_id
       from norm_gen.transfer_schema_object  where transfer_schema_id =p_transfer_schema_id );
 end;$body$;

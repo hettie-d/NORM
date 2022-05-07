@@ -1,7 +1,5 @@
---select  norm_gen.traverse_tree (7, 'account') 
---select * from norm_gen.transfer_schema 
-drop function if exists norm_gen.traverse_tree (int, text);
-create or replace function norm_gen.traverse_tree (
+drop function if exists norm_gen.build_db_type (int, text);
+create or replace function norm_gen.build_db_type (
   p_transfer_schema_id int, p_root_object text)
   returns text
 language SQL as
@@ -12,7 +10,7 @@ select
    $$) ||
   /* traverse sub-tree recursively */
   (select coalesce(string_agg(
-       norm_gen.traverse_tree ( p_transfer_schema_id, ref_object), 
+       norm_gen.build_db_type ( p_transfer_schema_id, ref_object), 
        $$
   $$), $$ $$)
   from norm_gen.transfer_schema_key k
@@ -33,8 +31,8 @@ where
       coalesce (db_type_calc,db_type), $$,
       $$) 
 from norm_gen.transfer_schema_key k
-join  norm_gen.transfer_schema_object   ob
-on k.transfer_schema_object_id = ob.transfer_schema_object_id
+join norm_gen.transfer_schema_object   ob
+  on k.transfer_schema_object_id = ob.transfer_schema_object_id
 where    ob.t_object = p_root_object
 /* order by key position */
   ) ||
@@ -46,18 +44,17 @@ where    ob.t_object = p_root_object
    and transfer_schema_id=p_transfer_schema_id)
   ;
 $body$;
-/*
+
 drop function if exists norm_gen.generate_types( p_schema_title text);
 create or replace function norm_gen.generate_types( p_schema_title text)
 returns text
 language sql as
 $body$
-select norm_gen.traverse_tree (transfer_schema_id, transfer_schema_root_object)                                                                                                                                                    
+select norm_gen.build_db_type (transfer_schema_id, transfer_schema_root_object)                                                                                                                                                    
   from norm_gen.transfer_schema
  where transfer_schema_name=p_schema_title
 ;
 $body$; 
-*/
---select  traverse_tree (transfer_schema_name, transfer_schema_root_object) 
---  from transfer_schema;
+
+--select norm_gen.generate_types('User account')
   
