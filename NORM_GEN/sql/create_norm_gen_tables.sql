@@ -3,6 +3,7 @@
 drop type if exists norm_gen.t_d_link cascade;
 create type norm_gen.t_d_link as (
   alias text,
+  db_schema text,
   db_table text,
   pk_col text,
   fk_col text
@@ -50,5 +51,7 @@ create table norm_gen.transfer_schema_key(
    db_type text,
    fk_col  text,  
    ref_object text,
-   db_type_calc text
+   ref_object_id int,
+   db_type_calc text,
+   key_position int
 );

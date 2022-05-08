@@ -5,4 +5,7 @@ set search_path to norm_gen;
 \ir process_schema_pkg.sql
 \ir ts_all.sql
 \ir build_conditions_pkg.sql
+\ir build_return_type_okg.sql
+\ir build_select_pkg.sql
+
 

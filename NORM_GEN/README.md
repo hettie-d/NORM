@@ -8,13 +8,15 @@ In order to automate this procee we need to present a contract in a more formali
 
 To use NORM_GEN, run the file 
 \_load\_all\_norm\_gen.sql from this directory on your local Postgres database
-It will create a NORM\_GEN schema with metadata tables and deploy two packges:
+It will create a NORM\_GEN schema with metadata tables and deploy the following packages:packges:
 
 process_schema
 build_conditions
+build_return_type
+build_select
 
-It addition, it will create a function ts_all which runs all of the above functions and returns the transfer_schema_id of the new schema.
+It addition, it will create a function ts_all which runs all functions from the process_schema package and populates all metadata.
 
-An example which processes a JSON schema for account can be found in the 
+To run all funcitons for user account, execute:
 
 ts\_all\_call.sql

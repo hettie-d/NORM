@@ -1,3 +1,4 @@
+---populate metadata with the sample data
 select norm_gen.ts_all (						  				  
 	 $${
      "title": "User account",
@@ -128,4 +129,21 @@ select norm_gen.ts_all (
 $$::json		 
  );
 								   
-									   
+---generate sql to create data types:
+do $block$
+declare v_sql text;
+begin
+select norm_gen.generate_types('User account') into v_sql;
+execute v_sql;
+end;
+$block$;
+--	generate select nested object
+
+do $block$
+declare v_sql text;
+begin
+select norm_gen.nested_root('User account') into v_sql;
+raise notice 'SELECT: %' ,v_sql;
+end;
+$block$;
+	   
