@@ -1,5 +1,3 @@
---select  norm_gen.traverse_tree (7, 'account') 
---select * from norm_gen.transfer_schema 
 drop function if exists norm_gen.build_return_type (int, text);
 create or replace function norm_gen.build_return_type (
   p_transfer_schema_id int, p_root_object text)

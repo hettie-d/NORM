@@ -131,9 +131,9 @@ from  (select * from json_each (v_definitions )) d,
        json_populate_record (
        NULL::norm_gen.t_d_object,  f.db_mapping) m
 ;
-update transfer_schema_object tso set
+update norm_gen.transfer_schema_object tso set
    link = (select array_agg(row(
-    al.alias, coalesce(al.db_schema, tso.db_schema), al.db_table, al.pk_col, al.fk_col)::t_d_link)
+    al.alias, coalesce(al.db_schema, tso.db_schema), al.db_table, al.pk_col, al.fk_col)::norm_gen.t_d_link)
        from unnest (tso.link) al
    )
 where tso.link is not null 

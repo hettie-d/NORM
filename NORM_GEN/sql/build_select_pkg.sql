@@ -1,5 +1,4 @@
 ---select norm_gen.nested_root('User account')
----select * from norm_gen.transfer_schema_object
 drop function if exists norm_gen.build_from_clause;
 create or replace function norm_gen.build_from_clause (
 p_schema text, p_table text, p_alias text, p_link norm_gen.t_d_link[ ]
@@ -37,12 +36,12 @@ returns text
 language SQL as 
 $body$
 select $$ /* Entering $$||  p_row_type || $$ */
-row($$ ||
+    row($$ ||
 (select  string_agg(
 case 
 when t_key_type = $$array$$ then 
-$$(
-select array_agg( $$ || (
+$$   (
+    select array_agg( $$ || (
 select norm_gen.build_nested_row(p_schema_id, r.transfer_schema_object_id, 
        r.db_record_type, k.t_key_name) || 
        norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link)
@@ -62,8 +61,8 @@ $$
 else  coalesce(k.db_source_alias,p_alias, k.db_table) ||$$.$$||
 k.db_col
 end,
-$$,
-$$)
+$$  ,
+    $$)
 from (
 select * from norm_gen.transfer_schema_key 
 where transfer_schema_object_id = p_object_id
@@ -83,7 +82,7 @@ create or replace function norm_gen.nested_root(
    $body$
    select 
    $$ /* selecting $$ || p_hierarchy ||$$ $$ || transfer_schema_root_object || $$ */
-   select to_json (array_agg( 
+ select to_json (array_agg( 
    $$ 
    ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, $$top$$::text)
    || $$ ))$$ 
