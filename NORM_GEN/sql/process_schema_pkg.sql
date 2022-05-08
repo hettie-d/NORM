@@ -47,7 +47,7 @@ create type  norm_gen.td_key_mapping as (
   db_type text,
   fk_col text,
   ref_object text,
-  ref_object_id int
+  ref_object_id int   --- useless, cannot come from json
   );
 
 drop function if exists norm_gen.save_transfer_schema (p_schema json,
@@ -131,6 +131,14 @@ from  (select * from json_each (v_definitions )) d,
        json_populate_record (
        NULL::norm_gen.t_d_object,  f.db_mapping) m
 ;
+update transfer_schema_object tso set
+   link = (select array_agg(row(
+    al.alias, coalesce(al.db_schema, tso.db_schema), al.db_table, al.pk_col, al.fk_col)::t_d_link)
+       from unnest (tso.link) al
+   )
+where tso.link is not null 
+and    transfer_schema_id=p_transfer_schema_id;
+
 return query
    select * from  norm_gen.transfer_schema_object
       where transfer_schema_id=p_transfer_schema_id;

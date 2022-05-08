@@ -9,14 +9,14 @@ $bbody$
 select
 format (
  $$  
-from  %I.%I  %s$$, 
+from  %I.%I  %I $$, 
 p_schema,
 p_table, 
 p_alias) ||
 ---- embedded ----
 (select  coalesce( string_agg(  
   format ($$
-   join %I.%I %s on  %I.%I = %I.%I $$,  
+   join %I.%I %I on  %I.%I = %I.%I $$,  
    al.db_schema,
    al.db_table,  
    al.alias,  
@@ -32,7 +32,7 @@ $bbody$;
 
 drop function if exists norm_gen.build_nested_row;
 create or replace function norm_gen.build_nested_row (
-p_schema_id int,   p_object_id int, p_row_type text, p_alias text default NULL) 
+p_schema_id int,   p_object_id int, p_row_type text, p_alias text) 
 returns text
 language SQL as 
 $body$
@@ -47,7 +47,8 @@ select norm_gen.build_nested_row(p_schema_id, r.transfer_schema_object_id,
        r.db_record_type, k.t_key_name) || 
        norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link)
 from norm_gen.transfer_schema_object r
-where r.t_object = k.ref_object) ||$$)
+where r.t_object = k.ref_object
+and r.transfer_schema_id = p_schema_id) ||$$)
 $$
 when t_key_type = $$object$$ then 
 $$(  $$ || (
@@ -55,7 +56,8 @@ select norm_gen.build_nested_row(p_schema_id, r.transfer_schema_object_id,
        r.db_record_type, k.t_key_name) || 
        norm_gen.build_from_clause (r.db_schema, r.db_table, k.t_key_name, r.link)
 from norm_gen.transfer_schema_object r
-where r.t_object = k.ref_object) ||$$)
+where r.t_object = k.ref_object
+and r.transfer_schema_id = p_schema_id) ||$$)
 $$
 else  coalesce(k.db_source_alias,p_alias, k.db_table) ||$$.$$||
 k.db_col
