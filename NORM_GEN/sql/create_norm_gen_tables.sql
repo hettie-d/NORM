@@ -3,6 +3,7 @@
 drop type if exists norm_gen.t_d_link cascade;
 create type norm_gen.t_d_link as (
   alias text,
+  db_schema text,
   db_table text,
   pk_col text,
   fk_col text
