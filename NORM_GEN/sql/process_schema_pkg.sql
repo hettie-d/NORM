@@ -124,21 +124,22 @@ select
    m.pk_col,
    m.parent_fk_col,
    m.record_type,
-   m.embedded,
+---   m.embedded,
+   case when m.embedded is NULL then NULL
+   else
+   (select array_agg(row(
+       al.alias, 
+       coalesce(al.db_schema, m.db_schema, v_dflt_schema), 
+       al.db_table, al.pk_col, al.fk_col
+       )::norm_gen.t_d_link)
+     from unnest (m.embedded) al)
+   end  as link,
    f.properties
 from  (select * from json_each (v_definitions )) d,
        json_populate_record (NULL::norm_gen.json_schema_object, d.value)f,
        json_populate_record (
        NULL::norm_gen.t_d_object,  f.db_mapping) m
 ;
-update norm_gen.transfer_schema_object tso set
-   link = (select array_agg(row(
-    al.alias, coalesce(al.db_schema, tso.db_schema), al.db_table, al.pk_col, al.fk_col)::norm_gen.t_d_link)
-       from unnest (tso.link) al
-   )
-where tso.link is not null 
-and    transfer_schema_id=p_transfer_schema_id;
-
 return query
    select * from  norm_gen.transfer_schema_object
       where transfer_schema_id=p_transfer_schema_id;
