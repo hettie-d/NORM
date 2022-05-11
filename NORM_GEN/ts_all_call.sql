@@ -18,7 +18,19 @@ select norm_gen.ts_all (
                   "pk_col": "account_id",
                  "record_type": "account_record"
          },
-         "properties": {
+         "properties": { 
+             "account_id": {
+                 "type": "number"
+             },     
+             "username": {
+                 "type": "string"
+             },
+             "last_name": {
+                 "type": "string"
+             },
+             "first_name": {
+                 "type": "string"
+             }
              "dob": {
                  "type": "string",
                  "format": "date",
@@ -38,18 +50,6 @@ select norm_gen.ts_all (
                  "items": {
                      "$ref": "#/definitions/phone"
                  }
-             },
-             "username": {
-                 "type": "string"
-             },
-             "last_name": {
-                 "type": "string"
-             },
-             "account_id": {
-                 "type": "number"
-             },
-             "first_name": {
-                 "type": "string"
              }
          }
      },
