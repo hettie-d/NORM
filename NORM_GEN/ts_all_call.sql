@@ -30,7 +30,7 @@ select norm_gen.ts_all (
              },
              "first_name": {
                  "type": "string"
-             }
+             },
              "dob": {
                  "type": "string",
                  "format": "date",
@@ -128,7 +128,8 @@ select norm_gen.ts_all (
  }
 $$::json		 
  );
-								   
+ 
+							   
 ---generate sql to create data types:
 do $block$
 declare v_sql text;
@@ -146,4 +147,4 @@ select norm_gen.nested_root('User account') into v_sql;
 raise notice 'SELECT: %' ,v_sql;
 end;
 $block$;
-	   
+   
