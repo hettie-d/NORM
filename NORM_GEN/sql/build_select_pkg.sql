@@ -68,7 +68,11 @@ select * from norm_gen.transfer_schema_key
 where transfer_schema_object_id = p_object_id
 order by  key_position) k
 )
-|| $$)::$$  || p_row_type 
+|| $$)::$$  || 
+(select db_schema from transfer_schema
+where transfer_schema_id = p_schema_id)
+|| $$.$$
+   || p_row_type 
  as nested_object;
 $body$;
 
