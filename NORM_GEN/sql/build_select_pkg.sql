@@ -82,10 +82,13 @@ create or replace function norm_gen.nested_root(
    $body$
    select 
    $$ /* selecting $$ || p_hierarchy ||$$ $$ || transfer_schema_root_object || $$ */
- select to_json (array_agg( 
+ select    ---to_json (
+           array_agg( 
    $$ 
    ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, $$top$$::text)
-   || $$ ))$$ 
+   || $$   )  --- close array_agg
+   ---   )   --- close to_json
+   $$ 
    || norm_gen.build_from_clause(tso.db_schema,tso.db_table,$$top$$, tso.link)
    from norm_gen.transfer_schema s
    join norm_gen.transfer_schema_object tso
