@@ -56,14 +56,15 @@ v_sql:=norm_gen.nested_root($txt$||
 quote_literal(p_schema_name)||$txt$)||
 $$ where $txt$||v_root_object_pk|| 
 $txt$ in($$ ||array_to_string(p_$txt$||
-       v_root_object_pk||$txt$s ,',')||$$) )s
+       v_root_object_pk||$txt$s ,',')||$$)
 $$;
   execute v_sql into v_result;
     return (v_result);
-
 end;
 $BODY$;
 $txt$;	
-raise notice '%', v_sql;
+execute v_sql;
 return true;
+exception when others then 
+return false;
 end;$body$;

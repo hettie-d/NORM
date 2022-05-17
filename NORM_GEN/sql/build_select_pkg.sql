@@ -69,15 +69,12 @@ where transfer_schema_object_id = p_object_id
 order by  key_position) k
 )
 || $$)::$$  || 
-(select db_schema from transfer_schema
+(select db_schema from norm_gen.transfer_schema
 where transfer_schema_id = p_schema_id)
 || $$.$$
-   || p_row_type 
+   || p_row_type ||$$)$$
  as nested_object;
 $body$;
-
-
-
 
 drop function if exists norm_gen.nested_root;
 create or replace function norm_gen.nested_root(
@@ -86,13 +83,10 @@ create or replace function norm_gen.nested_root(
    $body$
    select 
    $$ /* selecting $$ || p_hierarchy ||$$ $$ || transfer_schema_root_object || $$ */
- select    ---to_json (
+ select  
            array_agg( 
    $$ 
    ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, $$top$$::text)
-   || $$   )  --- close array_agg
-   ---   )   --- close to_json
-   $$ 
    || norm_gen.build_from_clause(tso.db_schema,tso.db_table,$$top$$, tso.link)
    from norm_gen.transfer_schema s
    join norm_gen.transfer_schema_object tso
