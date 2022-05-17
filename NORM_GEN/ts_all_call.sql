@@ -18,7 +18,19 @@ select norm_gen.ts_all (
                   "pk_col": "account_id",
                  "record_type": "account_record"
          },
-         "properties": {
+         "properties": { 
+             "account_id": {
+                 "type": "number"
+             },     
+             "username": {
+                 "type": "string"
+             },
+             "last_name": {
+                 "type": "string"
+             },
+             "first_name": {
+                 "type": "string"
+             },
              "dob": {
                  "type": "string",
                  "format": "date",
@@ -38,18 +50,6 @@ select norm_gen.ts_all (
                  "items": {
                      "$ref": "#/definitions/phone"
                  }
-             },
-             "username": {
-                 "type": "string"
-             },
-             "last_name": {
-                 "type": "string"
-             },
-             "account_id": {
-                 "type": "number"
-             },
-             "first_name": {
-                 "type": "string"
              }
          }
      },
@@ -128,7 +128,8 @@ select norm_gen.ts_all (
  }
 $$::json		 
  );
-								   
+ 
+							   
 ---generate sql to create data types:
 do $block$
 declare v_sql text;
@@ -146,4 +147,14 @@ select norm_gen.nested_root('User account') into v_sql;
 raise notice 'SELECT: %' ,v_sql;
 end;
 $block$;
-	   
+
+---generate funciton norm.account_search_by_ids
+
+select * from norm_gen.generate_select_by_id_function('User account');
+
+---test the result
+
+select * from norm.account_search_by_ids(array [1,2]);
+
+
+   

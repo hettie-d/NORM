@@ -7,7 +7,7 @@ $body$
 select 
 /* Entering an object */
     ( $$/* entering $$ || $$ : $$ || p_root_object || $$ */
-   $$) ||
+ $$) ||
   /* traverse sub-tree recursively */
   (select coalesce(string_agg(
        norm_gen.build_return_type ( p_transfer_schema_id, ref_object), 
@@ -23,18 +23,19 @@ where
   )  ||
   /* The sub-tree is done, complete processing of current object */
   (select 
-  $$create type $$ ||db_schema||'.'|| db_record_type || $$ as (
+$$drop type if exists $$ ||db_schema||'.'|| db_record_type || $$ cascade;
+  create type $$ ||db_schema||'.'|| db_record_type || $$ as (
       $$||
   --- $$ ---generate type columns here $$ || 
   (select 
-      string_agg(db_col  || $$  $$ || 
-      coalesce (db_type_calc,db_type), $$,
-      $$) 
+      string_agg (col, $$,
+      $$ ) from (select db_col  || $$  $$ || 
+      coalesce (db_type_calc,db_type)as col
 from norm_gen.transfer_schema_key k
 join  norm_gen.transfer_schema_object   ob
 on k.transfer_schema_object_id = ob.transfer_schema_object_id
-where    ob.t_object = p_root_object
-/* order by key position */
+where ob.t_object = p_root_object
+ order by key_position ) a
   ) ||
   $$
   );
