@@ -147,4 +147,14 @@ select norm_gen.nested_root('User account') into v_sql;
 raise notice 'SELECT: %' ,v_sql;
 end;
 $block$;
+
+---generate funciton norm.account_search_by_ids
+
+select * from norm_gen.generate_select_by_id_function('User account');
+
+---test the result
+
+select * from norm.account_search_by_ids(array [1,2]);
+
+
    
