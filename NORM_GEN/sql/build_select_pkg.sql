@@ -1,4 +1,3 @@
----select norm_gen.nested_root('User account')
 drop function if exists norm_gen.build_from_clause;
 create or replace function norm_gen.build_from_clause (
 p_schema text, p_table text, p_alias text, p_link norm_gen.t_d_link[ ]
@@ -70,9 +69,10 @@ order by  key_position) k
 )
 || $$)::$$  || 
 (select db_schema from norm_gen.transfer_schema
-where transfer_schema_id = p_schema_id)
-|| $$.$$
-   || p_row_type ||$$)$$
+where transfer_schema_id = p_schema_id)||
+       $$.$$|| 
+       p_row_type ||
+       $$)$$
  as nested_object;
 $body$;
 
@@ -90,8 +90,8 @@ create or replace function norm_gen.nested_root(
    || norm_gen.build_from_clause(tso.db_schema,tso.db_table,$$top$$, tso.link)
    from norm_gen.transfer_schema s
    join norm_gen.transfer_schema_object tso
-   on tso.transfer_schema_id = s.transfer_schema_id
-   and tso.t_object = s.transfer_schema_root_object
+       on tso.transfer_schema_id = s.transfer_schema_id
+       and tso.t_object = s.transfer_schema_root_object
    where s.transfer_schema_name = p_hierarchy;
    $body$;
 	

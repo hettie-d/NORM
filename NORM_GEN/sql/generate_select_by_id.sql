@@ -1,5 +1,3 @@
---- select * from norm_gen.generate_select_by_id_function('User account')
-
 create or replace function norm_gen.generate_select_by_id_function(
   p_schema_name text,
   p_root_object_name text default null)
@@ -53,12 +51,12 @@ v_result $txt$||v_schema_name||$txt$.$txt$||v_db_record_type||
 v_sql text;
 begin
 v_sql:=norm_gen.nested_root($txt$||
-quote_literal(p_schema_name)||$txt$)||
-$$ where $txt$||v_root_object_pk|| 
-$txt$ in($$ ||array_to_string(p_$txt$||
-       v_root_object_pk||$txt$s ,',')||$$)
-$$;
-  execute v_sql into v_result;
+       quote_literal(p_schema_name)||$txt$)||
+       $$ where $txt$||v_root_object_pk|| 
+       $txt$ in($$ ||array_to_string(p_$txt$||
+              v_root_object_pk||$txt$s ,',')||$$)
+       $$;
+ execute v_sql into v_result;
     return (v_result);
 end;
 $BODY$;
