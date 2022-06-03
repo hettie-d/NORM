@@ -166,7 +166,8 @@ from json_each_text (p_in)  q_in
 ),
 scalar_keys as (
 select  
-     tk. t_key_name, o1.t_object,
+     tk. t_key_name, 
+     coalesce (tk.db_source_alias, o1.t_object) as t_object,
     tk.db_col, tk.db_type_calc
 from transfer_schema_key tk
    join transfer_schema_object o1
@@ -175,13 +176,16 @@ from transfer_schema_key tk
    on o1.transfer_schema_id= ri.transfer_schema_id
 where
     tk.t_key_type not in ('array', 'object')
-----) select * from scalar_keys;
+---) select * from scalar_keys;
 ),
  cplx_keys as (
 select  
-     tk. t_key_name, o1.t_object,
-     o2.db_table, o2.db_parent_fk_col,
-     o2.db_schema, o2.db_pk_col
+     tk. t_key_name, 
+     o1.t_object,
+     o2.db_table, 
+     o2.db_parent_fk_col,
+     o2.db_schema, 
+     o2.db_pk_col
 from transfer_schema_key tk
    join transfer_schema_object o1
    on tk.transfer_schema_object_id = o1.transfer_schema_object_id
@@ -192,6 +196,36 @@ from transfer_schema_key tk
    on o1.transfer_schema_id= ri.transfer_schema_id
 where 
     tk.t_key_type in ('array', 'object')
+union all
+select  
+     tk. ref_object, 
+     o1.t_object,
+     o2.db_table, 
+     o2.db_parent_fk_col,
+     o2.db_schema, 
+     o2.db_pk_col
+from transfer_schema_key tk
+   join transfer_schema_object o1
+   on tk.transfer_schema_object_id = o1.transfer_schema_object_id
+   join transfer_schema_object o2
+   on tk.ref_object = o2.t_object
+      and o1.transfer_schema_id = o2.transfer_schema_id
+   join root_info  ri
+   on o1.transfer_schema_id= ri.transfer_schema_id
+where 
+    tk.t_key_type in ('array', 'object')
+union all
+select  
+     al. alias, 
+     o5.t_object,
+     al.db_table, 
+     al.pk_col,
+     al.db_schema, 
+     al.fk_col
+from  transfer_schema_object o5
+   join root_info  ri
+   on o5.transfer_schema_id= ri.transfer_schema_id,
+   unnest (o5.link) al
 union all
 select 
     transfer_schema_root_object, '$root',
@@ -209,26 +243,25 @@ union all
 select t_key_name, t_object from cplx_keys
 ),
 raw_conditions as (
-select '$root' as gp,
-          '$root'  as tbl,
+select NULL::text  as parent,
            key,
            value
 from root_info
 union all
-select p.tbl as gp,
-          p.key as tbl,
+select 
+          k.t_object as parent,
           s.key,
           s.value
 from  
     raw_conditions p,
      json_each_text (p.value::json) s
-where  s.key in (
-   select t_key_name from all_keys)
-     and  position ('{'in p.value) > 0  
-   ),
+join  all_keys k
+   on s.key = k.t_key_name
+where   position ('{'in p.value) > 0  
+---- ) select * from raw_conditions;
+),
 per_object as (
-select r.gp,
-          r.tbl,
+select r.parent,
           string_agg(
        norm_gen.build_simple_term (
            r.key, 
@@ -238,20 +271,21 @@ select r.gp,
 from raw_conditions r
    join scalar_keys t
    on t.t_key_name = r.key
-   group by  gp, tbl
-   )
+   group by   r.parent
+ ---) select * from per_object;
+ )
 select  cond
 from unnest (norm_gen.nest_cond (
 (select
    array_agg(
-    (gp, tbl, conds,
+    (ck.t_object, parent, conds,
      ck.db_schema, ck.db_table, 
      ck.db_parent_fk_col,
      ck.db_pk_col
     )::norm_gen.cond_record)
 from per_object po
      join cplx_keys ck
-     on  po.tbl = ck.t_key_name
+     on  po.parent = ck.t_key_name
      )
 )
 );
