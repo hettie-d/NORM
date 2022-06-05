@@ -9,7 +9,7 @@ b_parent_fk_col text,
 db_pk_col   text
 );
 
-create or replace function cond_ops (p_js text) returns  text
+create or replace function norm_gen.cond_ops (p_js text) returns  text
 language SQL as
 $body$
 /* Probably this should be in a table or an arry */
@@ -41,7 +41,7 @@ select format($$ %I IN (
    $$,
       coalesce(d_par_pk, $$PK_$$   || t_par),
       coalesce(d_fk,  $$FK_$$ || t_obj || $$_$$ || t_par),
-      coalesce (d_table, $$TABLE_$$ || t_obj)
+      coalesce(d_schema, $$SCHEMA_$$)||'.'||coalesce (d_table, $$TABLE_$$ || t_obj)
       )
     || row_conds ||   $$) $$;
 $body$;
@@ -86,27 +86,33 @@ select p.gp as gp,
        c.db_schema)
         as cond
 from
-           unnest (c_in) p (gp, tbl, cond,
+   unnest (c_in) p (
+       gp, 
+       tbl, 
+       cond,
        db_schema,
-      db_table, 
-     db_parent_fk_col,
-      db_pk_col 
-           )
-    join unnest (c_in) c(gp, tbl, cond,
-           db_schema,
-      db_table, 
-     db_parent_fk_col,
-      db_pk_col )
+       db_table, 
+       db_parent_fk_col,
+       db_pk_col 
+       )
+    join unnest (c_in) c(
+        gp, 
+        tbl, 
+        cond,
+        db_schema,
+        db_table, 
+        db_parent_fk_col,
+        db_pk_col )
    on c.gp = p.tbl
   where
-            c.tbl not in (select gp from unnest(c_in))
+     c.tbl not in (select gp from unnest(c_in))
  union all
  (select gp,
          tbl,
-      db_schema,
-      db_table, 
-       db_parent_fk_col,
-       db_pk_col, 
+         db_schema,
+         db_table, 
+         db_parent_fk_col,
+         db_pk_col, 
          cond
   from unnest (c_in) as dd(gp, tbl, cond,
            db_schema,
@@ -122,13 +128,15 @@ select
          end
 from
 (select array_agg(
-     (gp, tbl, cond,
-       db_schema,
+     (gp, 
+      tbl, 
+      cond,
+      db_schema,
       db_table, 
-     db_parent_fk_col,
+      db_parent_fk_col,
       db_pk_col 
       )::norm_gen.cond_record
-            ) cond_arr
+    ) cond_arr
  from
  (select gp,
          tbl,
@@ -161,7 +169,7 @@ value,
 transfer_schema_id,
 transfer_schema_root_object
 from json_each_text (p_in)  q_in
- join transfer_schema ts
+ join norm_gen.transfer_schema ts
  on q_in.key = ts.transfer_schema_name
 ),
 scalar_keys as (
@@ -169,8 +177,8 @@ select
      tk. t_key_name, 
      coalesce (tk.db_source_alias, o1.t_object) as t_object,
     tk.db_col, tk.db_type_calc
-from transfer_schema_key tk
-   join transfer_schema_object o1
+from norm_gen.transfer_schema_key tk
+   join norm_gen.transfer_schema_object o1
    on tk.transfer_schema_object_id = o1.transfer_schema_object_id
    join root_info  ri
    on o1.transfer_schema_id= ri.transfer_schema_id
@@ -186,10 +194,10 @@ select
      o2.db_parent_fk_col,
      o2.db_schema, 
      o2.db_pk_col
-from transfer_schema_key tk
-   join transfer_schema_object o1
+from norm_gen.transfer_schema_key tk
+   join norm_gen.transfer_schema_object o1
    on tk.transfer_schema_object_id = o1.transfer_schema_object_id
-   join transfer_schema_object o2
+   join norm_gen.transfer_schema_object o2
    on tk.ref_object = o2.t_object
       and o1.transfer_schema_id = o2.transfer_schema_id
    join root_info  ri
@@ -204,10 +212,10 @@ select
      o2.db_parent_fk_col,
      o2.db_schema, 
      o2.db_pk_col
-from transfer_schema_key tk
-   join transfer_schema_object o1
+from norm_gen.transfer_schema_key tk
+   join norm_gen.transfer_schema_object o1
    on tk.transfer_schema_object_id = o1.transfer_schema_object_id
-   join transfer_schema_object o2
+   join norm_gen.transfer_schema_object o2
    on tk.ref_object = o2.t_object
       and o1.transfer_schema_id = o2.transfer_schema_id
    join root_info  ri
@@ -222,7 +230,7 @@ select
      al.pk_col,
      al.db_schema, 
      al.fk_col
-from  transfer_schema_object o5
+from  norm_gen.transfer_schema_object o5
    join root_info  ri
    on o5.transfer_schema_id= ri.transfer_schema_id,
    unnest (o5.link) al
@@ -232,7 +240,7 @@ select
      o3.db_table, o3.db_parent_fk_col,
      o3.db_schema, o3.db_pk_col
 from root_info  ts
-   join transfer_schema_object o3
+   join norm_gen.transfer_schema_object o3
    on o3.t_object = ts.transfer_schema_root_object
    and o3.transfer_schema_id = ts.transfer_schema_id
 -----) select * from cplx_keys;
