@@ -69,9 +69,12 @@ select norm_gen.ts_all (
                          ]
                  },
              "properties": {
-                     "email": {
-                         "type": "string"
-                     },
+                     "email_address": {
+                         "type": "string",
+                         "db_mapping":{
+                         "db_col":"email" 
+                         }
+                      },
                      "email_id": {
                          "type": "number"               
                      },
@@ -155,6 +158,23 @@ select * from norm_gen.generate_select_by_id_function('User account');
 ---test the result
 
 select * from norm.account_search_by_ids(array [1,2]);
+
+---generate generic searhc function
+
+select norm_gen.generate_search_generic_function('User account');
+
+---test the result
+
+select norm.account_search_generic($${
+"phone_type":"cell",
+"email_priority":"primary",
+"account":{"last_name":"johns",
+     "emails":{"email_address":{"$like":"%gmail%"}},
+     "dob":{"$gt":"1901-01-01"},
+     "phones":{"phone_number":{"$like":"312%"}}
+     }
+}$$::json);
+
 
 
    
