@@ -49,7 +49,8 @@ where r.t_object = k.ref_object
 and r.transfer_schema_id = p_schema_id) ||$$)
 $$
 when t_key_type = $$object$$ then 
-$$(  $$ || (
+$$(  
+select  ( $$ || (
 select norm_gen.build_nested_row(p_schema_id, r.transfer_schema_object_id, 
        r.db_record_type, k.t_key_name) || 
        norm_gen.build_from_clause (r.db_schema, r.db_table, k.t_key_name, r.link)
