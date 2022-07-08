@@ -56,7 +56,7 @@ $body$
 select 
      format ($$ %I $$,
       coalesce(d_col,$$J_$$ || t_key))
-   ||  cond_ops(op)      
+   ||  norm_gen.cond_ops(op)      
    || format ($$ (%L::%I) $$, val,
       coalesce (d_col_type, $$text$$))
 FROM json_each_text(
