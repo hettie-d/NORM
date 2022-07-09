@@ -28,9 +28,21 @@ p_alias) ||
    as from_clause;
 $bbody$;
 
+drop function if exists norm_gen.build_where_clause;
+create or replace function norm_gen.build_where_clause (
+   P_parent_alias text, p_parent_key text, 
+   p_alias text, p_key text) returns text
+   language SQL as 
+$body$
+select format($$
+where  %s.%s = %s.%s
+$$,
+p_parent_alias, p_parent_key,  p_alias, p_key );
+$body$;
+
 drop function if exists norm_gen.build_nested_row;
 create or replace function norm_gen.build_nested_row (
-p_schema_id int,   p_object_id int, p_row_type text, p_alias text) 
+p_schema_id int,   p_object_id int, p_row_type text, p_alias text, p_db_key text) 
 returns text
 language SQL as 
 $body$
@@ -41,18 +53,26 @@ case
 when t_key_type = $$array$$ then 
 $$   (
     select array_agg( $$ || (
-select norm_gen.build_nested_row(p_schema_id, r.transfer_schema_object_id, 
-       r.db_record_type, k.t_key_name) || 
-       norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link)
+select norm_gen.build_nested_row(
+p_schema_id, r.transfer_schema_object_id, 
+       r.db_record_type, k.t_key_name, r.db_pk_col) || 
+       norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link) ||
+norm_gen.build_where_clause(
+    p_alias, p_db_key,  k.t_key_name, r.db_parent_fk_col)      
 from norm_gen.transfer_schema_object r
 where r.t_object = k.ref_object
 and r.transfer_schema_id = p_schema_id) ||$$)
 $$
 when t_key_type = $$object$$ then 
-$$(  $$ || (
-select norm_gen.build_nested_row(p_schema_id, r.transfer_schema_object_id, 
-       r.db_record_type, k.t_key_name) || 
-       norm_gen.build_from_clause (r.db_schema, r.db_table, k.t_key_name, r.link)
+$$(  
+select  ( $$ || (
+select norm_gen.build_nested_row(
+   p_schema_id, r.transfer_schema_object_id, 
+       r.db_record_type, k.t_key_name, r.db_pk_col) || 
+norm_gen.build_from_clause (
+r.db_schema, r.db_table, k.t_key_name, r.link) ||
+norm_gen.build_where_clause(
+    p_alias, p_db_key,  k.t_key_name, k.fk_col)      
 from norm_gen.transfer_schema_object r
 where r.t_object = k.ref_object
 and r.transfer_schema_id = p_schema_id) ||$$)
@@ -86,7 +106,7 @@ create or replace function norm_gen.nested_root(
  select  
            array_agg( 
    $$ 
-   ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, $$top$$::text)
+   ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, $$top$$::text,  tso.db_pk_col)
    || norm_gen.build_from_clause(tso.db_schema,tso.db_table,$$top$$, tso.link)
    from norm_gen.transfer_schema s
    join norm_gen.transfer_schema_object tso
