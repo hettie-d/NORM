@@ -1,5 +1,4 @@
-drop function build_to_db;
-create or replace function build_to_db (p_hierarchy text) returns text
+create or replace function norm_gen.build_to_db (p_hierarchy text) returns text
 language SQL as
 $generator$
 with  recursive
@@ -8,7 +7,7 @@ select
 transfer_schema_id as schema_id,
 transfer_schema_name as schema_name,
 transfer_schema_root_object as root_object
-from   transfer_schema ts
+from   norm_gen.transfer_schema ts
 where transfer_schema_name =  p_hierarchy
 ---- $$ACCOUNT_hierarchy$$
 ---) select * from schema_info;
