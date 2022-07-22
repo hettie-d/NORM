@@ -1,0 +1,133 @@
+ {
+     "title": "flight_boarding_hierarchy",
+     "description":"flight with passengers boarded on this flight",
+     "type": "array",
+     "items": {
+         "$ref": "#/definitions/flight"
+               },
+     "db_mapping":{
+     	   "db_schema":"postgres_air"
+     	            },
+     "definitions": {
+       "flight": {
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"flight",
+                  "pk_col": "flight_id",
+                  "record_type": "flight_bookings_record"
+              },
+     "properties":{
+        "flight_id":{
+                "type": "number"
+           },
+        "flight_no":{
+                "type": "text"
+           },
+        "scheduled_departure":{
+                "type": "text",
+                "format":"date-time",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "scheduled_arrival":{
+                "type": "text",
+                "format":"date-time",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "departure_airport_code":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"departure_airport" 
+                }
+           },
+        "arrival_airport_code":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"arrival_airport" 
+                }
+           },
+        "boarding_passes":{
+                "type": "array",
+                "items": {
+                     "$ref":"#/definitions/boarding_pass"
+                      }
+           }
+      } 
+     }, 
+       "boarding_pass": {
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"boarding_pass",
+                  "pk_col": "pass_id",
+                  "parent_fk_col":"flight_id",
+                  "record_type": "flight_boarding_pass_record",
+                  "embedded": [
+                         {"alias":"leg_flight",
+                          "db_table":"booking_leg",
+                        "pk_col":"booking_leg_id",
+                        "fk_col":"booking_leg_id"
+                    }
+                    ]
+              },
+     "properties":{
+        "pass_id":{
+                "type": "number"
+           },
+        "booking_leg_id":{
+                "type": "number"
+           },
+        "flight_id":{
+                "type": "number",
+                "db_mapping": {
+                  "db_source_alias":"fleg_flight"
+                  }
+           },
+        "seat":{
+                "type": "tstring"
+           },
+        "passenger":{
+                "type": "object",
+                "items": {
+                     "$ref":"#/definitions/passenger"
+                      },
+                 "db_mapping":{
+                    "fk_col":"booking_id"
+                    }
+           }
+       } 
+     },         
+     "passenger":{
+              "type": "object",
+               "db_mapping": {
+                  "db_table":"passenger",
+                  "pk_col": "passenger_id",
+                  "parent_fk_col":"booking_id",
+                  "record_type": "flight_boarding_passenger_record"
+                    },
+              "properties":{
+                   "passenger_id":{
+                           "type": "number"
+                      },
+                   "booking_id":{
+                           "type": "number"
+                      },
+                   "passenger_no":{
+                           "type": "number"
+                      },
+                   "first_name":{
+                           "type": "text"
+                      },
+                   "last_name":{
+                           "type": "text"
+                      },
+                   "account_id":{
+                           "type": "number"
+                       }
+                    }
+                 }
+      }
+}
+          
