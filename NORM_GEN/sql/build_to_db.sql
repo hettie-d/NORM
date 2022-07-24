@@ -6,7 +6,8 @@ schema_info as (
 select 
 transfer_schema_id as schema_id,
 transfer_schema_name as schema_name,
-transfer_schema_root_object as root_object
+transfer_schema_root_object as root_object,
+db_schema
 from   norm_gen.transfer_schema ts
 where transfer_schema_name =  p_hierarchy
 ---- $$ACCOUNT_hierarchy$$
@@ -25,9 +26,12 @@ with
    from  json_populate_recordset (NULL::%2$s_record_in, p_in)
    ),
 $prefix$, 
-     schema_name,  root_object, $$norm$$)
+     schema_name,  ---1
+     root_object,  ---2
+     db_schema    ---$$norm$$ ---3. 
+      )
  as f_prefix
- from schema_info
+ from schema_info 
 ---) select * from func_prefix;
 ),
 ts_object as (
@@ -99,7 +103,7 @@ select
   t_object,
   (select max(level) from tree_node tr
   where tr.t_object = tn.t_object) as level,
-   format($format$create type %1$s_record_in as(
+   format($format$create type $3$s.%1$s_record_in as(
      %2$s,
     cmd text);
    $format$, 
@@ -116,7 +120,8 @@ select
    from ts_object_key tk
    where tk.t_object = tn.t_object
    order by key_position) kt
-   )  ---2
+   ),  ---2
+   tn.db_schema --3
   ) as type_in_def
 from ts_object  tn
 order by level desc, t_object
@@ -130,8 +135,10 @@ from types_in
 ),
 w_array_type as (
 select string_agg(
-format ($$create type %s_rec_in_array as(
-    arr %1$s_record_in [] ); $$,t_object),
+format ($format$
+create type %2$s.%1$s_rec_in_array as(
+    arr %1$s_record_in [] ); $format$,
+    t_object, db_schema),
 $$
 $$)  arr_types
 from ts_object
@@ -178,7 +185,7 @@ delete_stmt as (
 select string_agg(del_cte, $$ $$) as deletions
 from (select   format($format$
    delete_%1$s as (
-   delete from %2s
+   delete from %6$s.%2$s
    where  %3$s in
       (select %4$s from pgn_input_%1$s
       where cmd = $$d$$)
@@ -192,7 +199,8 @@ from (select   format($format$
    from ts_object_key tk
    where tk.t_object = tn.t_object
    and tn.db_pk_col = tk.db_col), ---4
-   tn.db_parent_fk_col ---5
+   tn.db_parent_fk_col, ---5
+   tn.db_schema --- 6
    ) del_cte
 from tree_node tn
 order by level desc, t_object) dcte 
@@ -202,7 +210,7 @@ update_stmt as (
 select string_agg(upd_cte, $$ $$) as updates
 from (select   format($format$
    update_%1$s as (
-   update %2s as a set
+   update %7$s.%2$s as a set
         ---- columns ---
         %6$s
    from pgn_input_%1$s i
@@ -225,7 +233,8 @@ from (select   format($format$
    from ts_object_key tk
    where tk.t_object = tn.t_object
    and tk.db_col not in (tn.db_pk_col, tn.db_parent_fk_col)
-   ) ---6
+   ), ---6
+   tn.db_schema ---7
    ) upd_cte
 from tree_node tn
 order by level desc, t_object) dcte 
@@ -281,7 +290,7 @@ order by  tn.level, tn.node
 insert_parent as (
 select  format($format$
 insert_%1$s as (
-insereet into %2$s (
+insereet into %6$s.%2$s (
      %3$s)
 select
      %4$s
@@ -293,7 +302,8 @@ node,  ---1
 db_table,   ---2
 ic.db_cols,  ---3
 ic.key_names, ---4
-   db_pk_col   ---5
+   db_pk_col,   ---5
+   db_schema ---6
 )  ins_root
 from  tree_node tn
    join insertable_columns ic on ic.t_object=tn.t_object
@@ -348,7 +358,7 @@ insert_flat  as (
 select  tn.level, tn.node,
 format($format$
 insert_flat_%1$s as (
-insert into %8$s (
+insert into %9$s.%8$s (
    %2$s)
  select
    %3$s
@@ -372,7 +382,8 @@ where tk.t_object = tn.t_object and tk.db_col=tn.db_pk_col
 from ts_object_key tk
 where tk.t_object = tn.t_object and tk.t_key_type = $$array$$), ---6
 tn.db_pk_col, ---7
-tn.db_table ---8
+tn.db_table, ---8
+tn.db_schema --- 9
 ) i_flat
 from tree_node tn
 join insertable_columns ic on ic.t_object =tn.t_object
@@ -382,7 +393,7 @@ order by tn.level, tn.node
 insert_deep as (
 select format($format$
 insert_deep_%1$s as (
-insert into %8$s (
+insert into %9$s.%8$s (
    %2$s)
  select
    %3$s
@@ -406,7 +417,8 @@ where tk.t_object = tn.t_object and tk.db_col=tn.db_pk_col
 from ts_object_key tk
 where tk.t_object = tn.t_object and tk.t_key_type = $$array$$), ---6
 tn.db_pk_col, ---7
-tn.db_table ---8
+tn.db_table, ---8
+tn.db_schema ---9
 ) i_deep
 from tree_node tn
 join insertable_columns ic on ic.t_object =tn.t_object
