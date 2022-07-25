@@ -23,12 +23,12 @@ create or replace function %3$s.%1$s_to_DB (
 with 
  pgn_input_%2$s as materialized (
  select * 
-   from  json_populate_recordset (NULL::%2$s_record_in, p_in)
+   from  json_populate_recordset (NULL::%3$s.%2$s_record_in, p_in)
    ),
 $prefix$, 
      schema_name,  ---1
      root_object,  ---2
-     db_schema    ---$$norm$$ ---3. 
+     db_schema    ---3. 
       )
  as f_prefix
  from schema_info 
@@ -103,7 +103,7 @@ select
   t_object,
   (select max(level) from tree_node tr
   where tr.t_object = tn.t_object) as level,
-   format($format$create type $3$s.%1$s_record_in as(
+   format($format$create type %3$s.%1$s_record_in as(
      %2$s,
     cmd text);
    $format$, 
@@ -137,9 +137,10 @@ w_array_type as (
 select string_agg(
 format ($format$
 create type %2$s.%1$s_rec_in_array as(
-    arr %1$s_record_in [] ); $format$,
-    t_object, db_schema),
-$$
+    arr %2$s.%1$s_record_in [] ); $format$,
+    t_object, ---1
+    db_schema ---2
+    ), $$
 $$)  arr_types
 from ts_object
 ---) select * from w_array_type;
@@ -157,8 +158,8 @@ from (select
 where prnt.%1$s is not null
 ),
 $format$,  
-   tn.node, 
-   tn.parent_node,
+   tn.node,  ---1
+   tn.parent_node, ---2
    (select string_agg(key ,$$,
    $$) as n_keys
     from ( select  
@@ -166,14 +167,14 @@ $format$,
        from ts_object_key tk
       where tk.t_object = tn.t_object
       order by key_position) nkeys
-      ),
+      ), ---3
       (select pk.t_key_name
        from ts_object_key  pk
           join tree_node pn on pn.t_object = pk.t_object
           join ts_object po on po.t_object = pn.t_object
     where pn.node = tn.parent_node
        and po.db_pk_col = pk.db_col
-      ) 
+      ) ---4
    ) as  pgni
 from tree_node tn
 where level > 1
@@ -324,7 +325,7 @@ parent_link_%1$s as materialized (
         ),
      unnest (
   /* array of phones arrays */
- (select array_agg(row(%1$s)::%4$s_rec_in_array) 
+ (select array_agg(row(%1$s)::%7$s.%4$s_rec_in_array) 
    from pre_insert_%2$s)
         )  n(%5$s, %1$s),
        unnest (n.%1$s) u
@@ -346,7 +347,8 @@ tn.parent_pk_col,   --3
 tn.t_object,  ---4
 (select t_key_name from ts_object_key 
 where  t_object=tn.parent_object and db_col=tn.parent_pk_col), ---5
-ic.columns_in ---6
+ic.columns_in, ---6
+tn.db_schema ---7
 ) p_link
 from tree_node tn
    join object_cols_in ic on ic.t_object=tn.t_object
