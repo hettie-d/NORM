@@ -15,7 +15,7 @@ where transfer_schema_name =  p_hierarchy
 ),
 func_prefix as (
 select  format( $prefix$
-create or replace function %3$s.%1$s_to_DB (
+create or replace function %3$s.h%4$s_to_DB (
    p_in json) returns jsonb
   language SQL
   as
@@ -28,7 +28,8 @@ with
 $prefix$, 
      schema_name,  ---1
      root_object,  ---2
-     db_schema    ---3. 
+     db_schema,    ---3. 
+     schema_id ---4
       )
  as f_prefix
  from schema_info 
