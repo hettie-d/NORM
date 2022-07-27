@@ -116,6 +116,7 @@ select
    from (select  
       tk.t_key_name || $$ $$ ||
          case when tk.t_key_type = $$array$$ then 
+              tn.db_schema ||$dot$.$dot$ ||
               tk.ref_object || $$_record_in  [ ]$$
          else coalesce(tk.db_type_calc, tk.db_type)
          end
