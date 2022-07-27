@@ -15,7 +15,7 @@ where transfer_schema_name =  p_hierarchy
 ),
 func_prefix as (
 select  format( $prefix$
-create or replace function %3$s.h%4$s_to_DB (
+create or replace function %3$s.%4$s_%5$s_to_DB (
    p_in json) returns jsonb
   language SQL
   as
@@ -29,7 +29,8 @@ $prefix$,
      schema_name,  ---1
      root_object,  ---2
      db_schema,    ---3. 
-     schema_id ---4
+     root_object, --4
+     schema_id ---5
       )
  as f_prefix
  from schema_info 
@@ -70,12 +71,12 @@ join ts_object otr
 on  otr.t_object = s.root_object
 union
 select
-tn.level + 1 as level,
-tn.node as parent_node,
-tk.t_key_name as node,
-tn.t_object as parent_object,
-tk.ref_object as t_object,
-tk.t_key_type as node_type,
+     tn.level + 1 as level,
+     tn.node as parent_node,
+     tk.t_key_name as node,
+     tn.t_object as parent_object,
+     tk.ref_object as t_object,
+     tk.t_key_type as node_type,
      o2.db_table, 
      o2.db_parent_fk_col,
      o2.db_schema, 
@@ -104,7 +105,8 @@ select
   t_object,
   (select max(level) from tree_node tr
   where tr.t_object = tn.t_object) as level,
-   format($format$create type %3$s.%1$s_record_in as(
+   format($format$drop type if exists %3$s.%1$s_record_in cascade;
+   create type %3$s.%1$s_record_in as(
      %2$s,
     cmd text);
    $format$, 
@@ -137,6 +139,7 @@ from types_in
 w_array_type as (
 select string_agg(
 format ($format$
+drop type if exists %2$s.%1$s_rec_in_array cascade;
 create type %2$s.%1$s_rec_in_array as(
     arr %2$s.%1$s_record_in [] ); $format$,
     t_object, ---1
