@@ -296,7 +296,7 @@ order by  tn.level, tn.node
 insert_parent as (
 select  format($format$
 insert_%1$s as (
-insereet into %6$s.%2$s (
+insert into %6$s.%2$s (
      %3$s)
 select
      %4$s
@@ -332,11 +332,11 @@ parent_link_%1$s as materialized (
   /* array of phones arrays */
  (select array_agg(row(%1$s)::%7$s.%4$s_rec_in_array) 
    from pre_insert_%2$s)
-        )  n(%5$s, %1$s),
+        ) n (%5$s, %1$s),
        unnest (n.%1$s) u
     ) 
   UNION ALL
-  /* Pre-existing parernts with new phones */
+  /* Pre-existing parents with new phones */
   (select  
        %5$s,
        %6$s
