@@ -331,7 +331,7 @@ parent_link_%1$s as materialized (
      unnest (
   /* array of phones arrays */
  (select array_agg(row(%1$s)::%7$s.%4$s_rec_in_array) 
-   from pre_insert_%2$s)
+   from pre_insert_%2$s --)
         ) n (%5$s, %1$s),
        unnest (n.%1$s) u
     ) 
