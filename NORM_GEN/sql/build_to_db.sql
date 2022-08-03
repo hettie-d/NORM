@@ -9,37 +9,13 @@ transfer_schema_name as schema_name,
 transfer_schema_root_object as root_object,
 db_schema
 from   norm_gen.transfer_schema ts
-where transfer_schema_name =  p_hierarchy
----- $$ACCOUNT_hierarchy$$
+where transfer_schema_name = p_hierarchy
+ ---$$ACCOUNT_hierarchy$$
 ---) select * from schema_info;
 ),
-func_prefix as (
-select  format( $prefix$
-
-drop function if exists  %3$s.%4$s_%5$s_to_db;
-create or replace function %3$s.%4$s_%5$s_to_db (
-   p_in json) returns jsonb
-  language SQL
-  as
-  $funcbody$
-with 
- pgn_input_%2$s as materialized (
- select * 
-   from  json_populate_recordset (NULL::%3$s.%2$s_record_in, p_in)
-   ),
-$prefix$, 
-     schema_name,  ---1
-     root_object,  ---2
-     db_schema,    ---3. 
-     root_object, --4
-     schema_id ---5
-      )
- as f_prefix
- from schema_info 
----) select * from func_prefix;
-),
 ts_object as (
-select  o1.*
+select  o1.*, 
+   si.db_schema as si_db_schema
 from norm_gen.transfer_schema_object o1
    join   schema_info si
    on o1.transfer_schema_id = si.schema_id
@@ -47,13 +23,13 @@ from norm_gen.transfer_schema_object o1
 ),
 ts_object_key as (
 select  
-  o2.t_object, tk.*
+  o2.t_object, o2.si_db_schema,  tk.*
 from norm_gen.transfer_schema_key tk
 join ts_object o2
    on tk.transfer_schema_object_id = o2.transfer_schema_object_id
 where tk.t_key_type <> $$object$$
    and tk.db_source_alias is null
----) select   t_object, t_key_name from ts_object_key;
+---) select   t_object, t_key_name, db_col from ts_object_key;
 ),
 tree_node as (
 select 
@@ -67,23 +43,25 @@ root_object as node,
      coalesce (otr.db_parent_fk_col, otr.db_pk_col) as db_parent_fk_col,
      otr.db_schema, 
      otr.db_pk_col as parent_pk_col,
-     otr.db_pk_col
+     otr.db_pk_col,
+     otr.si_db_schema
 from schema_info s
 join ts_object otr 
 on  otr.t_object = s.root_object
 union
 select
-     tn.level + 1 as level,
-     tn.node as parent_node,
-     tk.t_key_name as node,
-     tn.t_object as parent_object,
-     tk.ref_object as t_object,
-     tk.t_key_type as node_type,
+tn.level + 1 as level,
+tn.node as parent_node,
+tk.t_key_name as node,
+tn.t_object as parent_object,
+tk.ref_object as t_object,
+tk.t_key_type as node_type,
      o2.db_table, 
      o2.db_parent_fk_col,
      o2.db_schema, 
      tn.db_pk_col as parent_pk_col,
-     o2.db_pk_col
+     o2.db_pk_col,
+     o2.si_db_schema
 from ts_object_key tk
 join ts_object o2 on o2.t_object = tk.ref_object
 join tree_node tn on tk.t_object = tn.t_object
@@ -108,7 +86,7 @@ select
   (select max(level) from tree_node tr
   where tr.t_object = tn.t_object) as level,
    format($format$drop type if exists %3$s.%1$s_record_in cascade;
-   create type %3$s.%1$s_record_in as(
+create type %3$s.%1$s_record_in as(
      %2$s,
     cmd text);
    $format$, 
@@ -133,6 +111,7 @@ from ts_object  tn
 order by level desc, t_object
 ---) select * from types_in;
 ),
+
 in_type_def as (
 select string_agg(type_in_def, $$
 $$)  as in_types
@@ -153,79 +132,313 @@ $$)  arr_types
 from tree_node
 ---) select * from w_array_type;
 ),
-pgn_input as (
-select string_agg(pgni, $$  $$) as pgn_inp
-from (select 
-   format($format$
-   pgn_input_%1$s as (select 
-         prnt.%4$s,
-         %3$s,
-         n.cmd
-    from pgn_input_%2$s prnt,
-       unnest (prnt.%1$s) n
-where prnt.%1$s is not null
-),
-$format$,  
-   tn.node,  ---1
-   tn.parent_node, ---2
-   (select string_agg(key ,$$,
-   $$) as n_keys
-    from ( select  
-        $$n.$$ || tk.t_key_name  as key
-       from ts_object_key tk
-      where tk.t_object = tn.t_object
-      order by key_position) nkeys
-      ), ---3
-      (select pk.t_key_name
-       from ts_object_key  pk
-          join tree_node pn on pn.t_object = pk.t_object
-          join ts_object po on po.t_object = pn.t_object
-    where pn.node = tn.parent_node
-       and po.db_pk_col = pk.db_col
-      ) ---4
-   ) as  pgni
+wp_array_type as (
+select string_agg(
+format ($format$
+drop type if exists %2$s.%1$s_rec_in_array_pnt cascade;
+create type %2$s.%1$s_rec_in_array_pnt as(
+    %3$s  %4$s,
+    %1$s %2$s.%5$s_record_in [] ); $format$,
+    tn.node, ---1
+    tn.db_schema, ---2
+    tn.parent_pk_col, ---3
+    coalesce(tk.db_type_calc, tk.db_type), ---4
+    tn.t_object ---5
+    ), $$
+$$)  arr_types
 from tree_node tn
-where level > 1
-order by level asc, t_object 
-)  pgn
----) select * from pgn_input;
+join ts_object_key tk
+on tk.t_object = tn.parent_object 
+   and tk.db_col = tn.parent_pk_col
+---) select * from wp_array_type;
 ),
-delete_stmt as (
-select string_agg(del_cte, $$ $$) as deletions
+func_parse as (
+select  format( $prefix$
+drop  function if exists %3$s.h%4$s_parse;
+create or replace function %3$s.h%4$s_parse (
+   p_in json) returns %3$s.%2$s_record_in[]
+  language sql
+  as
+  $funcbody$
+ select array_agg(row(
+    %5$s,  ---root columns
+    cmd
+    )::%3$s.%2$s_record_in)  as parsed_input
+   from  json_populate_recordset (NULL::%3$s.%2$s_record_in, p_in);
+  $funcbody$;
+$prefix$, 
+     si.schema_name,  ---1
+     si.root_object,  ---2
+     si.db_schema,    ---3. 
+     si.schema_id,  ---4
+     (select  string_agg (key_def, $$,
+   $$)
+   from (select  
+      tk.t_key_name as key_def
+   from ts_object_key tk
+   where tk.t_object = si.root_object
+   order by key_position) kt
+   ) ---5
+      ) func_def
+ from schema_info si
+---) select * from func_parse;
+),
+func_h_delete_drop as (
+select string_agg(del_cte_d, $$ $$) as func_def
 from (select   format($format$
-   delete_%1$s as (
-   delete from %6$s.%2$s
-   where  %3$s in
-      (select %4$s from pgn_input_%1$s
-      where cmd = $$d$$)
-   returning %5$s,   %3$s as pk
-   ),
+drop  function  if exists %1$s.h_%2$s_delete;
    $format$,
-   tn.node,  ---1
-   tn.db_table, ---2
-   tn.db_pk_col, ---3
-   (select tk.t_key_name
+     tn.si_db_schema,    ---1
+     tn.node ---2
+   ) del_cte_d
+from tree_node tn
+order by level desc, t_object) dcte 
+---) select * from func_h_delete_drop;
+),
+func_h_delete as (
+select string_agg(del_cte, $$ $$) as func_def
+from (select   format($format$
+create or replace function %1$s.h_%2$s_delete (
+   ids_in %3$s[]) returns %3$s[]
+  language plpgsql
+  as
+$funcbody$
+declare
+v_ret  %3$s[];
+begin
+---    invoke h_delete for all chald nodes
+%4$s
+---   actual delete statement for current node
+with del_stmt as(
+   delete from %5$s.%6$s
+   where  %7$s in 
+      (select i  from unnest(ids_in) a(i))
+   returning %8$s  ---  %7$s
+)
+select array_agg(%9$s) into v_ret from del_stmt;
+ return v_ret;
+ end;
+$funcbody$;
+   $format$,
+     tn.si_db_schema,    ---1
+     tn.node, ---2
+   (select     tk.db_type_calc
    from ts_object_key tk
    where tk.t_object = tn.t_object
-   and tn.db_pk_col = tk.db_col), ---4
-   tn.db_parent_fk_col, ---5
-   tn.db_schema --- 6
+   and db_col = tn.db_pk_col
+   ), ---3
+   (select string_agg(ch_del, $$ $$) from (
+      select format ($chfmt$
+  perform %1$s.h_%2$s_delete (
+      (select array_agg(%3$s) from %4$s.%5$s  where %6$s in (
+      select i from unnest(ids_in) a(i)))
+       );
+      $chfmt$,
+      ch.si_db_schema, ---ch-1
+      ch.node,    ---ch-2
+      ch.db_pk_col, ---ch 3
+      ch.db_schema, ---ch 4
+      ch.db_table, ---ch 5
+      ch.db_parent_fk_col ---ch 6
+      ) as ch_del
+    from tree_node ch where  ch.parent_node = tn.node) sch
+   ), ---4
+   tn.db_schema, ---5
+   tn.db_table, ---6
+   tn.db_pk_col, ---7
+      (select tk.t_key_name
+   from ts_object_key tk
+   where tk.t_object = tn.t_object
+   and tn.db_pk_col = tk.db_col), ---8
+   tn.db_parent_fk_col ---9
    ) del_cte
 from tree_node tn
 order by level desc, t_object) dcte 
----) select * from delete_stmt;
+---) select * from func_h_delete;
+),
+insertable_columns as (
+select
+  tk.t_object,
+  string_agg(tk.db_col, $$,
+      $$) as db_cols,
+  string_agg(tk.t_key_name, $$,
+      $$) as key_names
+from ts_object_key tk
+    join ts_object tso on tso.t_object = tk.t_object
+   where    tk.db_col <> tso.db_pk_col
+   and tk.t_key_type <>$$array$$
+group by tk. t_object
+---) select * from insertable_columns;
+) ,
+func_h_insert_drop as (
+select string_agg(ins_d, $$ $$) as func_ins_d
+from (select   format($format$
+drop function if exists %1$s.h_%2$s_insert;
+   $format$,
+     tn.si_db_schema,    ---1
+     tn.node) ---2
+     as ins_d
+from tree_node tn
+order by level desc, t_object) inse 
+---) select * from func_h_insert_drop;
+),
+insert_child_nodes as (
+  select  pnode,
+     string_agg(ch_ins, $$ $$) as ch_ins
+ from (
+      select tn.node as pnode,
+      format ($chfmt$
+  perform %1$s.h_%2$s_insert (
+       ---build parameter ---
+       (select  array_agg(ch_objects) from (
+        select 
+         row(  p.pk , ch_in. %2$s)::%1$s.%2$s_rec_in_array_pnt
+            as ch_objects    
+       from rows from (
+       unnest (v_ret),
+       unnest ( rows_in ) 
+       ) rf(pk, %2$s), --- rows from 
+       unnest (rf.%2$s) ch_in
+       where r_in.%2$s is not null ) subq
+       ) --- parameter
+       ); --- perform 
+      $chfmt$,
+      tn.si_db_schema, ---ch-1
+      ch.node,    ---ch-2
+      ch.db_pk_col, ---ch 3
+      ch.db_schema, ---ch 4
+      ch.db_table, ---ch 5
+      ch.db_parent_fk_col, ---ch 6
+      tn.db_pk_col ---ch 7
+      ) as ch_ins
+    from  tree_node tn
+    join tree_node ch 
+    on  ch.parent_node = tn.node
+   ) ch
+group by pnode
+---)select * from insert_child_nodes;
+),
+func_h_insert as (
+select string_agg(ins_f, $$ $$) as func_def
+from (select   format($format$
+create or replace function %1$s.h_%2$s_insert (
+   rows_in %1$s.%2$s_rec_in_array_pnt[]) 
+   returns %3$s[]
+  language plpgsql
+  as
+$funcbody$
+declare
+v_ret %3$s[ ];
+begin
+--- insert stmt for current node
+with
+insert_stmt as (
+insert into %5$s.%6$s (
+    %7$s  --- tn.db_parent_fk_col,
+   %8$s)  --- insertable columns
+(select  
+  %9$s  ---value for PK, if level > 1
+%10$s    --- insertable_keys
+from  unnest(rows_in) r_in(p, a),
+        unnest (r_in.a) r)
+ returning %11$s)
+select array_agg(  %11$s)  into v_ret
+from  insert_stmt;
+----------
+---    invoke h_insert for all chald nodes
+%4$s
+   return v_ret;
+   end;
+   $funcbody$;
+   $format$,
+     tn.si_db_schema,    ---1
+     tn.node, ---2
+   (select     tk.db_type_calc
+   from ts_object_key tk
+   where tk.t_object = tn.t_object
+   and db_col = tn.db_pk_col
+   ), ---3.  pk_type
+   (select ch_ins from insert_child_nodes
+   where pnode = tn.node), ---4 --- all child nodes
+   tn.db_schema, ---5
+   tn.db_table, ---6
+   case when tn.level=1 then $$ $$
+  else tn.db_parent_fk_col ||$$,$$ 
+  end, ---7
+  (select db_cols
+  from insertable_columns ic
+  where ic.t_object = tn.t_object), ---8
+(case when level > 1 then $$r_in.p,$$
+  else $$ $$ end), ---9
+(select key_names
+  from insertable_columns ic
+  where ic.t_object = tn.t_object), ---10
+  tn.db_pk_col, ---11
+  tn.db_parent_fk_col ---12
+   ) ins_f
+from tree_node tn
+order by level desc, t_object) inse 
+---) select * from func_h_insert;
+),
+func_h_update_drop as (
+select string_agg(upd_d, $$ $$) as func_upd_d
+from (select   format($format$
+drop function if exists %1$s.h_%2$s_update;
+   $format$,
+     tn.si_db_schema,    ---1
+     tn.node) ---2
+     as upd_d
+from tree_node tn
+order by level desc, t_object) inse 
+---) select * from func_h_update_drop;
+),
+update_child_nodes as (
+  select  pnode,
+     string_agg(ch_upd, $$ $$) as ch_upd
+ from (
+      select tn.node as pnode,
+      format ($chfmt$
+  perform %1$s.h_%2$s_update (
+       ---build parameter ---
+       (select  array_agg(ch_objects) from (
+        select 
+         row(  ch_in.%3$s , ch_in. %2$s)::%1$s.%2$s_rec_in_array_pnt
+            as ch_objects  
+       from        
+       unnest ( rows_in) rf,
+       unnest (rf.r_in.%2$s) ch_in ) flat
+       ) --- parameter
+       ); --- perform 
+      $chfmt$,
+      tn.si_db_schema, ---ch-1
+      ch.node,    ---ch-2
+      (select tk.t_key_name
+   from ts_object_key tk
+   where tk.t_object = tn.t_object
+   and tn.db_pk_col = tk.db_col) --3
+      ) as ch_upd
+from  tree_node tn
+    join tree_node ch 
+    on  ch.parent_node = tn.node
+   ) ch
+group by pnode
+---)select * from update_child_nodes;
 ),
 update_stmt as (
-select string_agg(upd_cte, $$ $$) as updates
-from (select   format($format$
-   update_%1$s as (
+select   tn.node,
+   format($format$
+   with
+   update_stmt as (
    update %7$s.%2$s as a set
         ---- columns ---
         %6$s
-   from pgn_input_%1$s i
+   from unnest (rwos_in)  ri,
+        unnest (ri.%1$s) i
    where  a.%3$s = i.%4$s
    returning a.%5$s,  a.%3$s as pk
-   ),
+   )
+   select array_agg(%5$s) into v_ret
+    from  update_stmt;
    $format$,
    tn.node, ---1
    tn.db_table, ---2
@@ -247,263 +460,118 @@ from (select   format($format$
    tn.db_schema ---7
    ) upd_cte
 from tree_node tn
-order by level desc, t_object) dcte 
 ---) select * from update_stmt;
 ),
-insertable_columns as (
-select
-  tk.t_object,
-  string_agg(tk.db_col, $$,
-      $$) as db_cols,
-  string_agg(tk.t_key_name, $$,
-      $$) as key_names
-from ts_object_key tk
-    join ts_object tso on tso.t_object = tk.t_object
-   where    tk.db_col <> tso.db_pk_col
-   and tk.t_key_type <>$$array$$
-group by tk. t_object
----) select * from insertable_columns;
-) ,
-pre_insert as (
-select 
-  tn.level, tn.node,
-format($format$
-pre_insert_%1$s as (
-select 
-     %2$s
-from pgn_input_%1$s
-where %3$s is null 
-    %4$s
- ),
-$format$,
-tn.node,
-(select  string_agg(tk.t_key_name, $$,
-$$) as cols
-from ts_object_key tk
-where tk.t_object =tn.t_object and tk.t_key_type <>$$object$$
-),
-(select    tk.t_key_name
-from ts_object_key tk
-where tk.t_object = tn.t_object and tk.db_col = tn.db_pk_col
-),
-(select  Coalesce($$ and ( $$||
-    string_agg(tk.t_key_name || $nn$ is not null $nn$, $or$ or $or$) || $b$ ) $b$,
-    ' ') sub_objects
-from ts_object_key tk
-where tk.t_object = tn.t_object and tk.t_key_type = $$array$$)
-)  pre_ins
+func_h_update as (
+select string_agg(upd_f, $$ $$) as func_def
+from (select   format($format$
+create or replace function %1$s.h_%2$s_update (
+   rows_in %1$s.%2$s_rec_in_array_pnt[]) 
+   returns %3$s[]
+  language plpgsql
+  as
+$funcbody$
+declare
+v_ret %3$s[ ];
+begin
+--- update stmt for current node
+%5$s
+---    invoke h_update for all chald nodes
+%4$s
+---  invoke delete for current level
+perform %1$s.h_%2$s_delete (
+(select array_agg(%6$s) 
+from unnest (rows_in) r_in, unnest (r_in.%2$s) o_in
+where cmd=$$d$$)
+ );
+--- invoke insert for current level
+perform %1$s.h_%2$s_insert(
+(select
+ array_agg( row(p, array_agg(row(
+   %7$s
+   )::%1$s.%2$s_record_in))::%1$s.%2$s_rec_in_array_pnt) 
+from unnest (rows_in) r_in(p,%2$s), unnest (r_in.%2$s) o_in
+where %6$s is null
+group by p)
+ );
+   return v_ret;
+   end;
+   $funcbody$;
+   $format$,
+     tn.si_db_schema,    ---1
+     tn.node, ---2
+   (select     tk.db_type_calc
+   from ts_object_key tk
+   where tk.t_object = tn.t_object
+   and db_col = tn.db_pk_col
+   ), ---3.  pk_type
+   (select ch_upd from update_child_nodes
+   where pnode = tn.node), ---4 --- all child nodes
+   (select upd_cte from update_stmt
+   where node = tn.node), ---5 --- 
+      (select tk.t_key_name
+   from ts_object_key tk
+   where tk.t_object = tn.t_object
+   and tn.db_pk_col = tk.db_col), ---6
+(select  
+   string_agg(t_key_name, $$,
+   $$) as key_names
+   from (select  
+      tk.t_key_name
+   from ts_object_key tk
+   where tk.t_object = tn.t_object
+   order by key_position) kt) ---7
+   ) upd_f
 from tree_node tn
-where tn.node in (select parent_node from tree_node)
-order by  tn.level, tn.node
----) select * from pre_insert;
+order by level desc, t_object) upde 
+---) select * from func_h_update;
 ),
-insert_parent as (
-select  format($format$
-insert_%1$s as (
-insert into %6$s.%2$s (
-     %3$s)
-select
-     %4$s
-from pre_insert_%1$s 
-returning %5$s
-),
-$format$,
-node,  ---1
-db_table,   ---2
-ic.db_cols,  ---3
-ic.key_names, ---4
-   db_pk_col,   ---5
-   db_schema ---6
-)  ins_root
-from  tree_node tn
-   join insertable_columns ic on ic.t_object=tn.t_object
-where level = 1
----) select * from insert_parent;
-),
-parent_link as (
-select tn.level, tn.node,
- format($format$
-parent_link_%1$s as materialized (
-   (select 
-       %5$s,  -- parent PK key
-       %6$s  --- column list
-  from rows from  (
-     unnest (
-    (select array_agg(%3$s)  --- parent PK col
-     from insert_%2$s)
-        ),
-     unnest (
-  /* array of phones arrays */
- (select array_agg(row(%1$s)::%7$s.%1$s_rec_in_array) 
-   from pre_insert_%2$s)
-        ) 
-        ---as (%1$s  %7$s.%1$s_rec_in_array)
-         ) nin (%5$s, %1$s),
-       unnest (nin.%1$s) u
-    ) 
-  UNION ALL
-  /* Pre-existing parents with new child items */
-  (select  
-       %5$s,
-       %6$s
-    from (select *
-    from pgn_input_%2$s p
-     where %5$s is not null) np,
-       unnest (np.%1$s) u
-    ) 
-    ),
-$format$,
-tn.node, ---1
-tn.parent_node, ---2
-tn.parent_pk_col,   --3
-tn.t_object,  ---4
-(select t_key_name from ts_object_key 
-where  t_object=tn.parent_object and db_col=tn.parent_pk_col), ---5
-ic.columns_in, ---6
-tn.db_schema ---7
-) p_link
-from tree_node tn
-   join object_cols_in ic on ic.t_object=tn.t_object
-where level > 1
-order by tn.level, tn.node
----) select * from parent_link;
-),
-insert_flat  as (
-select  tn.level, tn.node,
-format($format$
-insert_flat_%1$s as (
-insert into %9$s.%8$s (
-   %2$s)
- select
-   %3$s
- from %4$s i 
- where %5$s is null 
-       %6$s
-returning %7$s
-),
-$format$,
-tn.node, ---1
-ic.db_cols, --2
-ic.key_names, ---3
-case when level =1 then $$pgn_input_$$ || tn.node
-else $$parent_link_$$ || tn.node end,---4
-(select tk.t_key_name from ts_object_key tk
-where tk.t_object = tn.t_object and tk.db_col=tn.db_pk_col
-), ---5
-(select  Coalesce($$ and ( $$||
-    string_agg(tk.t_key_name || $nn$ is  null $nn$, $and$ and $and$) || $b$ ) $b$,
-    ' ') sub_objects
-from ts_object_key tk
-where tk.t_object = tn.t_object and tk.t_key_type = $$array$$), ---6
-tn.db_parent_fk_col, ---7
-tn.db_table, ---8
-tn.db_schema --- 9
-) i_flat
-from tree_node tn
-join insertable_columns ic on ic.t_object =tn.t_object
-order by tn.level, tn.node 
-----) select * from insert_flat;
-),
-insert_deep as (
+func_to_db as (
 select format($format$
-insert_deep_%1$s as (
-insert into %9$s.%8$s (
-   %2$s)
- select
-   %3$s
- from %4$s i 
- where %5$s is null 
-       %6$s
-returning %7$s
-),
+drop function if exists %3$s.h%4$s_to_db;
+create or replace function %3$s.h%4$s_to_db (
+   p_in json) returns %5$s[]
+  language sql
+  as
+$funcbod$
+select %3$s.h_%2$s_update(
+   ----  have  to combine with fake  parent ID
+array[ row( NULL::%5$s,
+   (%3$s.h%4$s_parse(p_in)::%3$s.%2$s_record_in[]))
+   ]::%3$s.%2$s_rec_in_array_pnt[]
+   );
+$funcbod$;
 $format$,
-tn.node, ---1
-ic.db_cols, --2
-ic.key_names, ---3
-case when level =1 then $$pgn_input_$$ || tn.node
-else $$parent_link_$$ || tn.parent_node end,---4
-(select tk.t_key_name from ts_object_key tk
-where tk.t_object = tn.t_object and tk.db_col=tn.db_pk_col
-), ---5
-(select  Coalesce($$ and ( $$||
-    string_agg(tk.t_key_name || $nn$ is  not  null $nn$, $or$ or $or$) || $b$ ) $b$,
-    ' ') sub_objects
-from ts_object_key tk
-where tk.t_object = tn.t_object and tk.t_key_type = $$array$$), ---6
-tn.db_pk_col, ---7
-tn.db_table, ---8
-tn.db_schema ---9
-) i_deep
-from tree_node tn
-join insertable_columns ic on ic.t_object =tn.t_object
-where level > 1 and tn.node in
- (select parent_node from tree_node)
-order by tn.level , tn.node
-----) select * from insert_deep;
+     si.schema_name,  ---1
+     si.root_object,  ---2
+     si.db_schema,    ---3. 
+     si.schema_id,  ---4
+   (select     tk.db_type_calc
+   from ts_object_key tk
+   where tk.t_object = si.root_object
+   and db_col = (
+      select db_pk_col from ts_object tso
+      where tso.t_object = tk.t_object)
+   ) ---5
+      ) func_def
+from schema_info si
+---) select * from func_to_db;
 ),
-del_upd_stmt as (
-select string_agg(exe_stmt, $$union $$) as exec_du
-from (select format($exec$
-Select %1$s from    delete_%2$s
-union
-Select %1$s from    update_%2$s
-$exec$,
-tn.db_parent_fk_col,
-tn.node
-) as exe_stmt
-from tree_node tn
-order by tn.level desc, tn.node) stmt
----) select * from del_upd_stmt;
-),
-ins_stmt as (
-select string_agg(exe_stmt, $$union $$) as exec_ins
-from (select format($exec$
-Select %1$s from    insert_flat_%2$s
-%3$s
-$exec$,
-tn.db_parent_fk_col, --- 1
-tn.node, ---2
-case when tn.level >1 
-   and tn.node in (select parent_node from tree_node)
-  then $$union 
-Select %1$s from    insert_deep_%2$s
-$$
-else $$ $$
-end ---3
-) as exe_stmt
-from tree_node tn
-order by tn.level asc, tn.node) stmt
----) select exec_ins from ins_stmt;
-),
-wrap_output as (
-select format($format$
-select to_json(array_agg(%1$s)) from (
-$format$,
-tn.db_pk_col) w_out
-from tree_node tn where level = 1
----) select * from wrap_output;
-)
-select
+
+
+last_cte as (select $$;$$)
+select 
  (select in_types from in_type_def) ||
  (select arr_types from w_array_type) ||
-(select f_prefix from func_prefix) ||
-    (select pgn_inp from pgn_input) ||
-    (select  deletions from delete_stmt) ||
-    (select updates  from update_stmt) ||
-    (select  string_agg(pre_ins,$$ $$) from pre_insert) ||
-    (select ins_root from insert_parent) ||
-    (select string_agg(p_link, $$ $$) from parent_link) ||
-    (select string_agg(i_flat, $$ $$ ) from insert_flat) ||
-    (select coalesce(string_agg(i_deep, $$ $$), $$ $$) from insert_deep)   || 
-  $px$ last_cte as (select $$ $$ as blank)
-  $px$ ||
-  (select w_out from wrap_output) ||
-  (select exec_du from del_upd_stmt) ||
-  $$UNION$$ ||
-  (select exec_ins from ins_stmt) ||
-$zz$) final;
-  $funcbody$;
-$zz$
-;
+ (select arr_types from wp_array_type) ||
+(select func_def from func_parse) ||
+(select func_def from func_h_delete_drop) ||
+(select func_def from func_h_delete) ||
+(select func_ins_d from func_h_insert_drop) ||
+(select func_def from func_h_insert) ||
+(select func_upd_d from func_h_update_drop) ||
+(select func_def from func_h_update) ||
+(select func_def from func_to_db) 
+;;
 $generator$;
 
