@@ -397,9 +397,7 @@ update_child_nodes as (
      string_agg(ch_upd, $$ $$) as ch_upd
  from (
       select tn.node as pnode,
-      format ($chfmt$
-  perform %1$s.h_%2$s_update (
-       ---build parameter ---
+      format ($chfmt$  perform %1$s.h_%2$s_update (
        (select  array_agg(ch_objects) from (
         select 
          row(  ch_in.%3$s , ch_in. %2$s)::%1$s.%2$s_rec_in_array_pnt
@@ -426,8 +424,7 @@ group by pnode
 ),
 update_stmt as (
 select   tn.node,
-   format($format$
-   with
+   format($format$ with
    update_stmt as (
    update %7$s.%2$s as a set
         ---- columns ---
@@ -435,9 +432,8 @@ select   tn.node,
    from unnest (rwos_in)  ri,
         unnest (ri.%1$s) i
    where  a.%3$s = i.%4$s
-   returning a.%5$s,  a.%3$s as pk
-   )
-   select array_agg(%5$s) into v_ret
+   returning a.%5$s,  a.%3$s as pk)
+   select array_agg(%5$s) into v_upd
     from  update_stmt;
    $format$,
    tn.node, ---1
@@ -473,19 +469,22 @@ create or replace function %1$s.h_%2$s_update (
 $funcbody$
 declare
 v_ret %3$s[ ];
+v_ins %3$s[ ];
+v_del %3$s[ ];
+v_upd %3$s[ ];
 begin
 --- update stmt for current node
 %5$s
 ---    invoke h_update for all chald nodes
 %4$s
 ---  invoke delete for current level
-perform %1$s.h_%2$s_delete (
+select  %1$s.h_%2$s_delete (
 (select array_agg(%6$s) 
 from unnest (rows_in) r_in, unnest (r_in.%2$s) o_in
 where cmd=$$d$$)
- );
+ ) into v_del;
 --- invoke insert for current level
-perform %1$s.h_%2$s_insert(
+select  %1$s.h_%2$s_insert(
 (select
  array_agg( row(p, array_agg(row(
    %7$s
@@ -493,7 +492,9 @@ perform %1$s.h_%2$s_insert(
 from unnest (rows_in) r_in(p,%2$s), unnest (r_in.%2$s) o_in
 where %6$s is null
 group by p)
- );
+ ) into v_ins;
+ select array_agg(id) into v_ret from (
+ select distinct id from unnest(v_upd || v_ins || v_del) r(id %3$s)) d;
    return v_ret;
    end;
    $funcbody$;
