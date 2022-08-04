@@ -429,7 +429,7 @@ select   tn.node,
    update %7$s.%2$s as a set
         ---- columns ---
         %6$s
-   from unnest (rwos_in)  ri,
+   from unnest (rows_in)  ri,
         unnest (ri.%1$s) i
    where  a.%3$s = i.%4$s
    returning a.%5$s,  a.%3$s as pk)
@@ -529,8 +529,8 @@ order by level desc, t_object) upde
 ),
 func_to_db as (
 select format($format$
-drop function if exists %3$s.h%4$s_to_db;
-create or replace function %3$s.h%4$s_to_db (
+drop function if exists %3$s.%2$s_%4$s_to_db;
+create or replace function %3$s.%2$s_%4$s_to_db (
    p_in json) returns %5$s[]
   language sql
   as
