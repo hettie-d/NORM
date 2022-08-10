@@ -5,8 +5,9 @@ node text,
 cond text,
 db_schema text,
 db_table text, 
-b_parent_fk_col text,
-db_pk_col   text
+db_parent_fk_col text,
+db_pk_col   text,
+parent_link_col text
 );
 
 create or replace function norm_gen.cond_ops (p_js text) returns  text
@@ -33,13 +34,13 @@ row_conds text,
 d_table text,
 d_par_pk text,
 d_fk text,
-d_schema text) returns text
+d_schema text, parent_link text) returns text
 language SQL as
 $body$
 select format($$ %I IN (
    select %I from %s where
    $$,
-      coalesce(d_par_pk, $$PK_$$   || t_par),
+      coalesce(parent_link, $$PK_$$   || t_par),
       coalesce(d_fk,  $$FK_$$ || t_obj || $$_$$ || t_par),
       coalesce(d_schema, $$SCHEMA_$$)||'.'||coalesce (d_table, $$TABLE_$$ || t_obj)
       )
@@ -66,7 +67,8 @@ FROM json_each_text(
 $body$;
 
 create or replace function norm_gen.nest_cond ( 
-   c_in norm_gen.cond_record [] ) returns norm_gen.cond_record []
+   c_in norm_gen.cond_record [] ) 
+   returns norm_gen.cond_record []
 language sql  as
 $body$
 with 
@@ -79,7 +81,8 @@ select
        db_schema,
        db_table, 
        db_parent_fk_col,
-       db_pk_col 
+       db_pk_col,
+       parent_link 
 from   unnest (c_in) p (
        path, 
        node, 
@@ -87,7 +90,7 @@ from   unnest (c_in) p (
        db_schema,
        db_table, 
        db_parent_fk_col,
-       db_pk_col )
+       db_pk_col, parent_link )
  ),
 grand_p as (
 select p.path as path,
@@ -95,12 +98,12 @@ select p.path as path,
       p.db_schema,
       p.db_table, 
       p.db_parent_fk_col,
-      p.db_pk_col, 
+      p.db_pk_col,  p.parent_link,
        norm_gen.build_object_term(
        p.node,  c.node, c.cond, 
        c.db_table, p.db_pk_col, 
        c.db_parent_fk_col,
-       c.db_schema)
+       c.db_schema, c.parent_link)
         as cond
 from set_in p
     join  set_in c
@@ -115,6 +118,7 @@ from set_in p
          db_table, 
          db_parent_fk_col,
          db_pk_col, 
+         parent_link,
          cond
 from  set_in dd
 where node in (
@@ -132,7 +136,8 @@ from
       db_schema,
       db_table, 
       db_parent_fk_col,
-      db_pk_col 
+      db_pk_col,
+      parent_link 
       )::norm_gen.cond_record
     ) cond_arr
  from
@@ -143,13 +148,15 @@ AND ') as cond,
       db_schema,
       db_table, 
        db_parent_fk_col,
-       db_pk_col
+       db_pk_col,
+       parent_link
 from  grand_p
  group by path, node,
       db_schema,
       db_table, 
        db_parent_fk_col,
-       db_pk_col
+       db_pk_col, 
+       parent_link
  )  u
  ) ff;
 $body$;
@@ -193,7 +200,8 @@ transfer_schema_root_object as t_object,
      otr.db_table, 
      otr.db_parent_fk_col,
      otr.db_schema, 
-     otr.db_pk_col
+     otr.db_pk_col,
+     NULL as parent_link_col
 from schema_info s
 join ts_object otr 
 on  otr.t_object = s.transfer_schema_root_object
@@ -206,7 +214,8 @@ tk.t_key_type as node_type,
      o2.db_table, 
      o2.db_parent_fk_col,
      o2.db_schema, 
-     o2.db_pk_col
+     o2.db_pk_col,
+     tn.db_pk_col as parent_link_col
 from ts_object_key tk
 join ts_object o2 on o2.t_object = tk.ref_object
 join tree_node tn on tk.t_object = tn.t_object
@@ -222,7 +231,8 @@ node_type,
      db_table, 
      db_parent_fk_col,
      db_schema, 
-     db_pk_col
+     db_pk_col,
+     parent_link_col
 from tree_node
 union
 select  
@@ -233,7 +243,8 @@ al.alias as t_object,
      al.db_table, 
      al.pk_col,
      al.db_schema, 
-     al.fk_col
+     al.fk_col,
+     al.fk_col as parent_link_col
 from  
 tree_node tn2 
 join ts_object oa
@@ -251,7 +262,8 @@ select
      xt.db_table, 
      xt.db_parent_fk_col,
      xt.db_schema, 
-     xt.db_pk_col
+     xt.db_pk_col,
+     xt.parent_link_col
 from x_tree xt
 join schema_info s on xt.parent_node = s.key
 union
@@ -264,7 +276,8 @@ select
      xt.db_table, 
      xt.db_parent_fk_col,
      xt.db_schema, 
-     xt.db_pk_col
+     xt.db_pk_col,
+     xt.parent_link_col
 from x_tree xt
     join  px_tree pxt
     on pxt.node= xt.parent_node
@@ -280,7 +293,8 @@ select
      xt.db_table, 
      xt.db_parent_fk_col,
      xt.db_schema, 
-     xt.db_pk_col
+     xt.db_pk_col,
+     xt.parent_link_col
 from  px_tree xt, 
   unnest (array[xt.node, xt.parent_node]) u(node)
 UNION
@@ -293,7 +307,8 @@ select
      xt.db_table, 
      xt.db_parent_fk_col,
      xt.db_schema, 
-     xt.db_pk_col
+     xt.db_pk_col,
+     xt.parent_link_col
 from       
    px_tree  xt
     join  x_desce dk
@@ -408,7 +423,7 @@ from unnest (norm_gen.nest_cond (
     xt.path, po.desc_node, po.conds,
      xt.db_schema, xt.db_table, 
      xt.db_parent_fk_col,
-     xt.db_pk_col
+     xt.db_pk_col,xt.parent_link_col
     )::norm_gen.cond_record)
 from   px_tree xt
 left join per_object po
