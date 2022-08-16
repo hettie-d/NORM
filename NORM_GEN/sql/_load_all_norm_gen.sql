@@ -7,8 +7,11 @@ set search_path to norm_gen;
 \ir build_conditions_pkg.sql
 \ir build_return_type_okg.sql
 \ir build_select_pkg.sql
+\ir build_to_db.sql
 \ir generate_select_by_ids.sql
 \ir generate_search_generic.sql
+\ir generate_to_db_function.sql
+
 
 
 
