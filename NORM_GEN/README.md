@@ -20,6 +20,12 @@ build_select
 
 build_to_db
 
+generate_select_by_ids
+
+generate_search_generic
+
+generate_to_db_function
+
 
 
 It addition, it will create a function ts_all which runs all functions from the process_schema package and populates all metadata.

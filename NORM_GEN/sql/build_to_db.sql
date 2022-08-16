@@ -206,7 +206,7 @@ $funcbody$
 declare
 v_ret  %3$s[];
 begin
----    invoke h_delete for all chald nodes
+---    invoke h_delete for all child nodes
 %4$s
 ---   actual delete statement for current node
 with del_stmt as(
@@ -408,7 +408,7 @@ from  unnest(rows_in) r_in(p, a),
  returning %11$s)
 select array_agg(  %11$s)  into v_ret
 from  insert_stmt;
----    invoke h_insert for all chald nodes
+---    invoke h_insert for all child nodes
 %4$s
    return v_ret;
    end;
@@ -542,7 +542,7 @@ begin
 select  %1$s.h_%2$s_delete (
 (select array_agg(o_in.%6$s) 
 from unnest (rows_in) r_in, unnest (r_in.%2$s) o_in
-where o_in.cmd=$$d$$)
+where lower(o_in.cmd)=$$delete$$)
  ) into v_del;
 --- invoke insert for current level
 select  %1$s.h_%2$s_insert(
