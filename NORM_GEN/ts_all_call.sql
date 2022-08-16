@@ -194,7 +194,7 @@ select norm_gen.generate_search_generic_function('User account');
 /*
 Testing that the new function works correctly
 */
-
+                
 select norm.account_search_generic($${
 "phone_type":"cell",
 "email_priority":"primary",
