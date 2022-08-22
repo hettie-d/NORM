@@ -240,7 +240,7 @@ select * from norm.account_1_to_db ($$[{
 
 select * from norm.account_1_to_db($$[{
    "account_id":"3",
-   "emails":[{"email":"new.email@hotmail.com", 
+   "emails":[{"email_address":"new.email@hotmail.com", 
                                       "email_priority_id":"1"}]
       }]
      $$::json)
