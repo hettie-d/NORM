@@ -26,18 +26,22 @@ p_alias) ||
    from unnest(p_link) al
    )
    as from_clause;
-$bbody$;
+$bbody$ ;
 
 drop function if exists norm_gen.build_where_clause;
 create or replace function norm_gen.build_where_clause (
-   P_parent_alias text, p_parent_key text, 
-   p_alias text, p_key text) returns text
+   P_parent_alias text, 
+   p_parent_key text, 
+   p_alias text, 
+   p_key text) returns text
    language SQL as 
 $body$
 select format($$
 where  %s.%s = %s.%s
 $$,
-p_parent_alias, p_parent_key,  p_alias, p_key );
+p_parent_alias, 
+p_parent_key, 
+ p_alias, p_key );
 $body$;
 
 drop function if exists norm_gen.build_nested_row;
@@ -58,7 +62,8 @@ p_schema_id, r.transfer_schema_object_id,
        r.db_record_type, k.t_key_name, r.db_pk_col) || 
        norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link) ||
 norm_gen.build_where_clause(
-    p_alias, p_db_key,  k.t_key_name, r.db_parent_fk_col)      
+    p_alias, p_db_key,  k.t_key_name, 
+        r.db_parent_fk_col)  
 from norm_gen.transfer_schema_object r
 where r.t_object = k.ref_object
 and r.transfer_schema_id = p_schema_id) ||$$)
@@ -72,7 +77,10 @@ select norm_gen.build_nested_row(
 norm_gen.build_from_clause (
 r.db_schema, r.db_table, k.t_key_name, r.link) ||
 norm_gen.build_where_clause(
-    p_alias, p_db_key,  k.t_key_name, k.fk_col)      
+    p_alias, 
+    k.db_col,  
+    k.t_key_name, 
+    k.fk_col)  
 from norm_gen.transfer_schema_object r
 where r.t_object = k.ref_object
 and r.transfer_schema_id = p_schema_id) ||$$)
@@ -114,4 +122,3 @@ create or replace function norm_gen.nested_root(
        and tso.t_object = s.transfer_schema_root_object
    where s.transfer_schema_name = p_hierarchy;
    $body$;
-	

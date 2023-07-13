@@ -29,7 +29,7 @@ $$drop type if exists $$ ||db_schema||'.'|| db_record_type || $$ cascade;
   --- $$ ---generate type columns here $$ || 
   (select 
       string_agg (col, $$,
-      $$ ) from (select db_col  || $$  $$ || 
+      $$ ) from (select t_key_name  || $$  $$ || 
       coalesce (db_type_calc,db_type)as col
 from norm_gen.transfer_schema_key k
 join  norm_gen.transfer_schema_object   ob
@@ -42,7 +42,7 @@ where ob.t_object = p_root_object
   $$
    from norm_gen.transfer_schema_object 
    where t_object = p_root_object
-   and transfer_schema_id=p_transfer_schema_id)
+      and transfer_schema_id=p_transfer_schema_id)
   ;
 $body$;
 
@@ -57,5 +57,5 @@ select norm_gen.build_return_type (transfer_schema_id, transfer_schema_root_obje
 ;
 $body$; 
 
---select norm_gen.generate_types('User account')
+---select norm_gen.generate_types('User account')
   

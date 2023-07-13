@@ -1,14 +1,14 @@
 drop type  if exists norm_gen.cond_record cascade;
 create type norm_gen.cond_record as (
-path text[],
-node text,
-cond text,
-db_schema text,
-db_table text, 
-db_parent_fk_col text,
-db_pk_col   text,
-parent_link_col text
-);
+   path text[],
+   node text,
+   cond text,
+   db_schema text,
+   db_table text, 
+   db_parent_fk_col text,
+   db_pk_col   text,
+   parent_link_col text
+   );
 
 create or replace function norm_gen.cond_ops (p_js text) returns  text
 language SQL as
@@ -28,13 +28,15 @@ end;
 $body$;
 
 create or replace function norm_gen.build_object_term (
-t_par text,
-t_obj text,
-row_conds text,
-d_table text,
-d_par_pk text,
-d_fk text,
-d_schema text, parent_link text) returns text
+t_par text,    /* parent table */
+t_obj text,   /* this object */
+row_conds text,   /* conditions on this object */
+d_table text,  /* this table */
+d_par_pk text,  /* parent key (to be IN) */
+d_fk text,    /* key in this object to be selected */
+d_schema text,  /* schema name */
+parent_link text
+) returns text
 language SQL as
 $body$
 select format($$ %I IN (
@@ -111,6 +113,7 @@ from set_in p
   where
      c.node not in (select parent_node  
           from set_in)
+      and c.cond is not null    
  union all
  select path,
          node,
@@ -212,10 +215,13 @@ tk.t_key_name as node,
 tk.ref_object as t_object,
 tk.t_key_type as node_type,
      o2.db_table, 
-     o2.db_parent_fk_col,
+     (case when tk.t_key_type = 'array'then  o2.db_parent_fk_col
+        else tk. fk_col end) as db_parent_fk_col,
      o2.db_schema, 
      o2.db_pk_col,
-     tn.db_pk_col as parent_link_col
+     (case when tk.t_key_type = 'array'then    tn.db_pk_col 
+     else tk.db_col end)
+         as parent_link_col
 from ts_object_key tk
 join ts_object o2 on o2.t_object = tk.ref_object
 join tree_node tn on tk.t_object = tn.t_object
@@ -404,7 +410,8 @@ select
        norm_gen.build_simple_term (
            r.key, 
         r.value,  t.db_col, t.db_type_calc),
-          $and$ AND $and$
+          $and$
+           AND $and$
           )  as conds
 from raw_conditions r
    join scalar_keys t
@@ -420,7 +427,7 @@ from unnest (norm_gen.nest_cond (
 (select
    array_agg(
     (
-    xt.path, po.desc_node, po.conds,
+    xt.path, xt.node, po.conds,
      xt.db_schema, xt.db_table, 
      xt.db_parent_fk_col,
      xt.db_pk_col,xt.parent_link_col
