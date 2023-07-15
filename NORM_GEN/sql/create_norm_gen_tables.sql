@@ -48,6 +48,7 @@ create table norm_gen.transfer_schema_key(
    db_table text,
    db_source_alias text,
    db_col text,
+   db_expression text,
    db_type text,
    fk_col  text,  
    ref_object text,

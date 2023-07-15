@@ -44,6 +44,7 @@ create type  norm_gen.td_key_mapping as (
   db_table text,
   db_source_alias text,
   db_col text,
+  db_expression text,
   db_type text,
   fk_col text,
   ref_object text,
@@ -116,7 +117,7 @@ insert into norm_gen.transfer_schema_object
    link ,
    properties
    )
-select 
+select
    p_transfer_schema_id,
    d.key as t_object_name,
    coalesce(m.db_schema, v_dflt_schema),
@@ -128,8 +129,8 @@ select
    case when m.embedded is NULL then NULL
    else
    (select array_agg(row(
-       al.alias, 
-       coalesce(al.db_schema, m.db_schema, v_dflt_schema), 
+       al.alias,
+       coalesce(al.db_schema, m.db_schema, v_dflt_schema),
        al.db_table, al.pk_col, al.fk_col
        )::norm_gen.t_d_link)
      from unnest (m.embedded) al)
@@ -162,6 +163,7 @@ insert into norm_gen.transfer_schema_key
    db_table,
    db_source_alias,
    db_col,
+   db_expression,
    db_type,
    fk_col,
    ref_object,
@@ -174,10 +176,10 @@ select
    p."type"as t_key_type,
    p.format as t_key_format,
    p.items as t_object_items,
-   coalesce (km.db_table, 
-      case 
+   coalesce (km.db_table,
+      case
       when km.db_source_alias is not null then
-           (select db_table 
+           (select db_table
            from        unnest (s.link) al
            where al.alias = km.db_source_alias
            )
@@ -186,12 +188,13 @@ select
       ) as db_table,
    km.db_source_alias,
    coalesce (km.db_col, k.key) as db_col,
+   coalesce(km.db_expression,'N') as db_expression,
    coalesce(km.db_type,
-      s.db_schema || $$.$$ || 
-coalesce (km.db_table, 
-      case 
+      s.db_schema || $$.$$ ||
+coalesce (km.db_table,
+      case
       when km.db_source_alias is not null then
-           (select db_table 
+           (select db_table
            from        unnest (s.link) al
            where al.alias = km.db_source_alias
            )
@@ -201,8 +204,9 @@ coalesce (km.db_table,
    km.fk_col,
  split_part(p.items->>'$ref', '/',3),
  (select transfer_schema_object_id from norm_gen.transfer_schema_object
-        where transfer_schema_id=p_transfer_schema_id and t_object=split_part(p.items->>'$ref', '/',3) ),
- row_number()  over(partition by s.transfer_schema_object_id ) 
+        where transfer_schema_id=p_transfer_schema_id 
+        and t_object=split_part(p.items->>'$ref', '/',3) ),
+ row_number()  over(partition by s.transfer_schema_object_id )
 from  norm_gen.transfer_schema_object s,
    json_each(s.properties) k,
    json_populate_record (NULL::norm_gen.json_schema_key,   k.value) p,
@@ -222,41 +226,41 @@ t_parent_object =(select  po.t_object from norm_gen.transfer_schema_key k
 				
 /*correctly assign db types for record types */
 
-update norm_gen.transfer_schema_key k 
+update norm_gen.transfer_schema_key k
 set db_type_calc =(
-              select  
-                  ob.db_schema||'.'||ob.db_record_type  
+              select
+                  ob.db_schema||'.'||ob.db_record_type
               from norm_gen.transfer_schema_object ob
               where ob.transfer_schema_object_id=k.ref_object_id
               )
 	where  t_key_type = $$object$$
          and k.transfer_schema_object_id in (
-				       select transfer_schema_object_id 
+				       select transfer_schema_object_id
 				       from norm_gen.transfer_schema_object
-				       where transfer_schema_id=p_transfer_schema_id 
+				       where transfer_schema_id=p_transfer_schema_id
 				       )
 ;
 /*correctly assign db types for arrays of records */
 
-update norm_gen.transfer_schema_key k 
+update norm_gen.transfer_schema_key k
 set db_type_calc =(
-               select 
+               select
                    ob.db_schema||'.'||ob.db_record_type ||'[]'
                from norm_gen.transfer_schema_object ob
                where ob.transfer_schema_object_id=k.ref_object_id
                )
  where  t_key_type = $$array$$
          and k.transfer_schema_object_id in (
-               				    select transfer_schema_object_id 
+               				    select transfer_schema_object_id
                				    from norm_gen.transfer_schema_object
-               				    where transfer_schema_id=p_transfer_schema_id 
+               				    where transfer_schema_id=p_transfer_schema_id
                				    )
-; 
+;
 return query select * from norm_gen.transfer_schema_key
        where transfer_schema_object_id in (
            select transfer_schema_object_id
-           from norm_gen.transfer_schema_object  
-           where transfer_schema_id =p_transfer_schema_id 
+           from norm_gen.transfer_schema_object
+           where transfer_schema_id =p_transfer_schema_id
            )
 ;
 end;$body$;
@@ -267,23 +271,23 @@ language plpgsql
 as
 $body$
 begin
-update norm_gen.transfer_schema_key k set 
+update norm_gen.transfer_schema_key k set
    db_type_calc = (
-      select 
+      select
          t.typname  :: text
-       from pg_class c 
-       join pg_attribute a on c.oid = a.attrelid 
+       from pg_class c
+       join pg_attribute a on c.oid = a.attrelid
                            and c.relname=k.db_table and attname=k.db_col
-        join pg_namespace n on n.oid = c.relnamespace 
+        join pg_namespace n on n.oid = c.relnamespace
 				                    and n.nspname=(
-				                    select db_schema 
+				                    select db_schema
 				                    from norm_gen.transfer_schema_object
-							              where transfer_schema_object_id=k.transfer_schema_object_id 
+							              where transfer_schema_object_id=k.transfer_schema_object_id
 							              )
          join pg_type t on atttypid =t.oid
 				)
  where transfer_schema_object_id in (
-				    select transfer_schema_object_id 
+				    select transfer_schema_object_id
 				    from norm_gen.transfer_schema_object
 				    where transfer_schema_id=p_transfer_schema_id )
 				           and t_key_type not in  ('array', 'object');
