@@ -17,7 +17,7 @@ select
 join norm_gen.transfer_schema_object   ob
 on k.transfer_schema_object_id = ob.transfer_schema_object_id
 where 
-  transfer_schema_id=p_transfer_schema_id 
+  ob.transfer_schema_id=p_transfer_schema_id 
   and ob.t_object = p_root_object
   and t_key_type in ($$object$$,$$array$$)
   )  ||
@@ -35,6 +35,7 @@ from norm_gen.transfer_schema_key k
 join  norm_gen.transfer_schema_object   ob
 on k.transfer_schema_object_id = ob.transfer_schema_object_id
 where ob.t_object = p_root_object
+and   ob.transfer_schema_id=p_transfer_schema_id 
  order by key_position ) a
   ) ||
   $$

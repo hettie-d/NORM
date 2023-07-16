@@ -75,6 +75,7 @@ select  tn.t_object,
    from (select     tk.t_key_name
    from ts_object_key tk
    where tk.t_object = tn.t_object
+       and db_expression = 'N'
    order by key_position) kt
    ) as columns_in
 from  ts_object  tn
@@ -103,11 +104,13 @@ create type %3$s.%1$s_record_in as(
     as key_type_def
    from ts_object_key tk
    where tk.t_object = tn.t_object
+      and tk.db_expression = 'N'
    order by key_position) kt
    ),  ---2
    tn.db_schema --3
   ) as type_in_def
 from ts_object  tn
+where tn.t_object in (select t_object from tree_node)
 order by level desc, t_object
 ---) select * from types_in;
 ),
@@ -177,6 +180,7 @@ $prefix$,
       tk.t_key_name as key_def
    from ts_object_key tk
    where tk.t_object = si.root_object
+       and tk.db_expression = 'N'
    order by key_position) kt
    ) ---5
       ) func_def
@@ -265,7 +269,9 @@ select
 from ts_object_key tk
     join ts_object tso on tso.t_object = tk.t_object
    where    tk.db_col <> tso.db_pk_col
-   and tk.t_key_type <>$$array$$
+   and tk.db_expression = 'N'
+   and tso.t_object in (select t_object from tree_node)
+   and tk.t_key_type not in ($$array$$, $$object$$)
 group by tk. t_object
 ---) select * from insertable_columns;
 ) ,
@@ -376,7 +382,10 @@ $chfmt$,
 ---)select * from func_insert_ch_parameter;
 ),
 func_insert_ch_parameter_all as (
-select string_agg(ch_ins, $$
+select 
+   coalesce (
+   string_agg(ch_ins, $$
+$$), $$/* insert_parameter is not needed */
 $$) as func_def
 from func_insert_ch_parameter
 ---)select * from func_insert_ch_parameter_all;
@@ -513,6 +522,7 @@ select   tn.node,
    from ts_object_key tk
    where tk.t_object = tn.t_object
    and tk.db_col not in (tn.db_pk_col, tn.db_parent_fk_col)
+   and tk.db_expression = 'N'
    and tk.t_key_type not in ($$array$$,$$object$$)
    ), ---6
    tn.db_schema ---7
@@ -583,6 +593,7 @@ group by p) p_ins)
       tk.t_key_name
    from ts_object_key tk
    where tk.t_object = tn.t_object
+      and tk.db_expression = 'N'
    order by key_position) kt), ---7  --- list of keys
    tn.t_object ---8
    ) upd_f
@@ -632,8 +643,6 @@ $format$,
 from schema_info si
 ---) select * from func_to_db;
 ),
-
-
 last_cte as (select $$;$$)
 select 
 (select to_db_d  from func_to_db_drop)  ||
