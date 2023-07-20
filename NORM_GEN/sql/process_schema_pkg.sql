@@ -7,8 +7,14 @@ create type norm_gen.json_schema_top as (
   description text,
   db_mapping json,
   items json,
-  definitions json,
-  b_schema text
+  definitions json
+  );
+
+drop type if exists norm_gen.json_schema_mapping cascade;
+create type norm_gen.json_schema_mapping as (
+  db_schema text,
+  db_prefix  text,
+  norm_schema text
   );
 
 drop type if exists norm_gen.t_d_object cascade;
@@ -29,7 +35,6 @@ create type norm_gen.json_schema_object as (
   db_mapping json,
   properties json
   );
-
 
 drop type if exists norm_gen.json_schema_key;
 create type norm_gen.json_schema_key as (
@@ -74,15 +79,20 @@ insert into norm_gen.transfer_schema (
      transfer_schema_description,
      transfer_schema_root_object,
      definitions,
-     db_schema)
-select
-      title,
-      type,
-      description,
+     db_schema,
+     db_prefix,
+     norm_schema)
+(select
+      p.title,
+      p.type,
+      p.description,
       split_part(p.items->>'$ref', '/',3) as root_object,
-      definitions,
-      db_mapping->>'db_schema'
-      from  json_populate_record (NULL::norm_gen.json_schema_top,p_schema) p
+      p.definitions,
+      m.db_schema,
+      coalesce(m.db_prefix, p.title) as db_prefix,
+      coalesce(m.norm_schema, m.db_schema) as norm_schema
+      from  json_populate_record (NULL::norm_gen.json_schema_top,p_schema) p,
+        json_populate_record (NULL::norm_gen.json_schema_mapping,p.db_mapping) m)
       returning transfer_schema_id into v_transfer_schema_id;
       return v_transfer_schema_id;
 end ;$body$;

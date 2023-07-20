@@ -151,7 +151,7 @@
          "booking_leg": {
              "type": "object",
              "db_mapping": {
-                 "pk_col": "booking_id",
+                 "pk_col": "booking_leg_id",
                  "db_table": "booking_leg",
                  "record_type": "booking_leg_record",
                  "parent_fk_col": "booking_id"

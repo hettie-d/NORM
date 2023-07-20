@@ -23,8 +23,8 @@ where
   )  ||
   /* The sub-tree is done, complete processing of current object */
   (select 
-$$drop type if exists $$ ||db_schema||'.'|| db_record_type || $$ cascade;
-  create type $$ ||db_schema||'.'|| db_record_type || $$ as (
+$$drop type if exists $$ ||ts.norm_schema||'.'|| ts.db_prefix ||$$_$$ || db_record_type || $$ cascade;
+  create type $$ ||ts.norm_schema||'.'||  ts.db_prefix ||$$_$$ || db_record_type || $$ as (
       $$||
   --- $$ ---generate type columns here $$ || 
   (select 
@@ -41,9 +41,11 @@ and   ob.transfer_schema_id=p_transfer_schema_id
   $$
   );
   $$
-   from norm_gen.transfer_schema_object 
-   where t_object = p_root_object
-      and transfer_schema_id=p_transfer_schema_id)
+   from norm_gen.transfer_schema_object  ob
+join  norm_gen.transfer_schema ts
+on ts.transfer_schema_id = ob.transfer_schema_id
+   where ob.t_object = p_root_object
+      and ts.transfer_schema_id=p_transfer_schema_id)
   ;
 $body$;
 

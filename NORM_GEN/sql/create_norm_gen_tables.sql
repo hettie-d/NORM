@@ -17,7 +17,9 @@ transfer_schema_type text,
 transfer_schema_description text,
 transfer_schema_root_object text,
 definitions json ,
-db_schema text
+db_schema text,   /* default schema for tables etc. */
+db_prefix text,       /* the name prefix for generated types and functions */
+norm_schema text  /* schema for generated types and functions */
 );
 
 drop table if exists norm_gen.transfer_schema_object cascade ;
