@@ -102,12 +102,11 @@ where transfer_schema_object_id = p_object_id
 order by  key_position) k
 )
 || $$)::$$  || 
-(select db_schema from norm_gen.transfer_schema
-where transfer_schema_id = p_schema_id)||
-       $$.$$|| 
-       p_row_type ||
-       $$)$$
- as nested_object;
+(select
+ norm_schema ||  $dot$.$dot$ || db_prefix || $$_$$ || p_row_type || $$)$$
+from norm_gen.transfer_schema
+where transfer_schema_id = p_schema_id)
+        as nested_object;
 $body$;
 
 drop function if exists norm_gen.nested_root;
