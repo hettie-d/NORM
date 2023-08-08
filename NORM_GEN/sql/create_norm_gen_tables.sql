@@ -5,6 +5,7 @@ create type norm_gen.t_d_link as (
   alias text,
   db_schema text,
   db_table text,
+  db_expression text,
   pk_col text,
   fk_col text
   );
@@ -33,6 +34,7 @@ db_schema text,
 db_table text,
 db_pk_col text,
 db_parent_fk_col text,
+db_expression text,
 db_record_type text,
 link norm_gen.t_d_link[],
 properties json

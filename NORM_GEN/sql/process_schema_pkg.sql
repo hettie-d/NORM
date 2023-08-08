@@ -21,6 +21,7 @@ drop type if exists norm_gen.t_d_object cascade;
 create type norm_gen.t_d_object as (
   db_schema text,
   db_table text,
+  db_expression text,
   pk_col text,
   parent_fk_col text,
   t_parent_object text,
@@ -122,6 +123,7 @@ insert into norm_gen.transfer_schema_object
    db_table,
    db_pk_col,
    db_parent_fk_col,
+   db_expression,
    db_record_type,
    link ,
    properties
@@ -133,6 +135,7 @@ select
    m.db_table,
    m.pk_col,
    m.parent_fk_col,
+   coalesce(m.db_expression,'N'),
    m.record_type,
 ---   m.embedded,
    case when m.embedded is NULL then NULL
@@ -140,7 +143,10 @@ select
    (select array_agg(row(
        al.alias,
        coalesce(al.db_schema, m.db_schema, v_dflt_schema),
-       al.db_table, al.pk_col, al.fk_col
+       al.db_table, 
+       coalesce(al.db_expression, 'N' ),
+       al.pk_col, 
+       al.fk_col
        )::norm_gen.t_d_link)
      from unnest (m.embedded) al)
    end  as link,

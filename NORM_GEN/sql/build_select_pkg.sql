@@ -1,21 +1,21 @@
 drop function if exists norm_gen.build_from_clause;
 create or replace function norm_gen.build_from_clause (
-p_schema text, p_table text, p_alias text, p_link norm_gen.t_d_link[ ]
+p_schema text, p_table text, p_alias text, p_link norm_gen.t_d_link[ ], p_expression text default  'N'
 ) returns text
 language SQL as
 $bbody$
 select
 format (
  $$  
-from  %I.%I  %I $$, 
-p_schema,
+from  %s%s  %s $$, 
+case when p_expression = 'Y' then ' 'else  p_schema || '.' end,
 p_table, 
 p_alias) ||
 ---- embedded ----
 (select  coalesce( string_agg(  
   format ($$
-   join %I.%I %I on  %I.%I = %I.%I $$,  
-   al.db_schema,
+   join %s%s %s on  %s.%s = %s.%s $$,  
+   al.db_schema || '.',
    al.db_table,  
    al.alias,  
    al.alias, 
@@ -62,7 +62,7 @@ select
    norm_gen.build_nested_row(
         p_schema_id, r.transfer_schema_object_id, 
        r.db_record_type, k.t_key_name, r.db_pk_col) || 
-       norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link) ||
+       norm_gen.build_from_clause (r.db_schema,r.db_table, k.t_key_name, r.link, r.db_expression) ||
 norm_gen.build_where_clause(
     p_alias, p_db_key,  k.t_key_name, 
         r.db_parent_fk_col)  
@@ -77,7 +77,7 @@ select norm_gen.build_nested_row(
    p_schema_id, r.transfer_schema_object_id, 
        r.db_record_type, k.t_key_name, r.db_pk_col) || 
 norm_gen.build_from_clause (
-r.db_schema, r.db_table, k.t_key_name, r.link) ||
+r.db_schema, r.db_table, k.t_key_name, r.link, r.db_expression) ||
 norm_gen.build_where_clause(
     p_alias, 
     k.db_col,  
