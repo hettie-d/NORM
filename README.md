@@ -1,56 +1,56 @@
 # What is NORM?
  
- NORM stands for No ORM framework. NORM is not a PosgreSQL extention, not a library, and not a set of functions.
+ NORM stands for No ORM framework.
  
  NORM is a methodology which allows object-oriented applications to interact with relational databases
- directly, without involving any ORM. Why do we want to avoid ORM? Because it negatively impacts application performance.
+ directly, without involving any ORM. 
  
- This meethodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206) and was fully implemented at Braviant Holidings, Chicago IL.
+ This methodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206) and was fully implemented at Braviant Holidings, Chicago IL.
 
-## Important update
-On Apr 13 2022, we added a new subdirectory NORM_GEN for the Phase II of NORM project:
-
-Automation of the NORM functions generation. Stay tuned!
 
 ## What's in the repo?
 
- The purpose of this repo is to provide a working example of the usage of NORM methodology.
+This repo contains a set of packages that can be used to automate the process of building NORM functions.
+
+To automate this process, we need to present a contract more formally. We present a contract as a JSON schema, then parse it and store the results in meta tables, later used to build the types and functions.
+
+
  
  ##  TOC:
  
- * The doc directory contains: a list of publications on NORM and a ppt of the  presentation from SOFSEM 2020 conference, where NORM was first officially announced.Take a look to find out why NORM was developed, and what are the advantages of this approach.
- * The sql directory contains a working example of NORM usage. Take a look to see to build PostgreSQL types and functions using NORM technology.
- * To install this example, run the \_load.all file from the sql directory
- * See file sql\examples.sql for usage
+ * The documentation directory contains: 
+ * The presentation directory contains ppt of the  presentation from SOFSEM 2020 conference, where NORM was first officially announced.Take a look to find out why NORM was developed, and what are the advantages of this approach.
+ * The sql directory contains a source code for the generator
  
+
 ## Quick Start
 
-Watch the video below from PostgresBuild2020 Conference, online 
+To use NORM, run the file 
 
-[PostgresBuild 2020 recording](https://drive.google.com/file/d/11eO_9_3Oh2G8UlEDD6vvGxCy_vgVWUBg/view?usp=sharing)
+\_load\_all\_norm\_gen.sql from this directory on your local Postgres database
 
- ## More on the NORM example
- 
- _create_tables.sql_  creates three tables: account, phone and email and some lookiups.
- 
- _initial_data_insert.sql_ does exactly what you think it does
- 
- _array_transport.sql_ creates an array_transport funcion. That is the only function you need to save for future use, if you want to try the NORM approach in your company.
- 
- _account_pkg.sql_  presents the NORM approach. In our approach, we combine the UDT definitions and corresponding functions into one file, which we call
- a _package_, referencing Oracle packages. 
- 
- It includes types definitions, _account\_create_ function, _account\_search\_by\_id_ for simple search
- and _account\_search_ for complex search on the combination of criteria. The matching "select" functions
- convert the output into JSON converted to text for data transfer purposes.
- 
- Please refer to the presentation to learn why we are doing the transformation as a separate step. 
- 
- Finally,the _account_update_  function performs the update of complex object. In addition to update, 
- it can also insert and delete detailed objects. 
- 
- Note, that both insert and update functions also return new/modified object(s)
- 
- 
+It will create a NORM_GEN schema with metadata tables and deploy the following packages:
+process_schema
+
+build_conditions
+
+build_return_type
+
+build_select
+
+build_to_db
+
+generate_select_by_ids
+
+generate_search_generic
+
+generate_to_db_function
 
 
+In addition, it will create a function ts_all which runs all functions from the process_schema package and populates all metadata.
+
+After that, we are ready to generate all PostgeSQL functions which will be called from the application.
+
+For details, consult the [User Guide](documentation/NORM-ug.html) 
+
+Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder.

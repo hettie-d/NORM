@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"  
+  "http://www.w3.org/TR/html4/loose.dtd">  
+<html > 
+<head><title>Preparing the Schema with Mappings for Generation</title> 
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
+<meta name="generator" content="TeX4ht (https://tug.org/tex4ht/)"> 
+<meta name="originator" content="TeX4ht (https://tug.org/tex4ht/)"> 
+<!-- html,2,sections+ --> 
+<meta name="src" content="norm-ug.tex"> 
+<link rel="stylesheet" type="text/css" href="norm-ug.css"> 
+</head><body 
+>
+   <!--l. 269--><div class="crosslinks"><p class="noindent">[<a 
+href="norm-ugse7.html" >next</a>] [<a 
+href="norm-ugse5.html" >prev</a>] [<a 
+href="norm-ugse5.html#tailnorm-ugse5.html" >prev-tail</a>] [<a 
+href="#tailnorm-ugse6.html">tail</a>] [<a 
+href="norm-ug.html#norm-ugse6.html" >up</a>] </p></div>
+   <h3 class="sectionHead"><span class="titlemark">6   </span> <a 
+href="norm-ug.html#QQ2-7-12" id="x7-100006">Preparing the Schema with Mappings for Generation</a></h3>
+<!--l. 271--><p class="noindent" >Any JSON schema defining NORM hierarchy must be compiled into NORM internal
+tables using <span 
+class="cmtt-10">norm</span><span 
+class="cmtt-10">_gen.ts</span><span 
+class="cmtt-10">_all </span>function. The following <span 
+class="cmtt-10">psql </span>script compiles the
+JSON schema stored as a file <span 
+class="cmtt-10">booking</span><span 
+class="cmtt-10">_hierarchy.json</span>:
+
+   <pre class="verbatim" id="verbatim-6">
+\set&#x00A0;&#x00A0;p_schema&#x00A0;&#8216;cat&#x00A0;booking_hierarchy.json&#8216;
+select&#x00A0;norm_gen.ts_all(:&#8217;p_schema&#8217;::json);
+</pre>
+<!--l. 276--><p class="nopar" >
+<!--l. 278--><p class="indent" >   This SELECT statement returns a value of the surrogate key assigned to the
+compiled schema. Note that the value of the surrogate key is changed after
+re-compilation and, therefore, can hardly be used for identification. It is safe to use
+the schema title instead. The internal NROM tables can store multiple hierarchies
+with different titles simultaneously.
+
+   <!--l. 280--><div class="crosslinks"><p class="noindent">[<a 
+href="norm-ugse7.html" >next</a>] [<a 
+href="norm-ugse5.html" >prev</a>] [<a 
+href="norm-ugse5.html#tailnorm-ugse5.html" >prev-tail</a>] [<a 
+href="norm-ugse6.html" >front</a>] [<a 
+href="norm-ug.html#norm-ugse6.html" >up</a>] </p></div>
+<!--l. 280--><p class="indent" >   <a 
+ id="tailnorm-ugse6.html"></a>  
+</body></html> 

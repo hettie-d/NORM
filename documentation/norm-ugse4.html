@@ -1,0 +1,317 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"  
+  "http://www.w3.org/TR/html4/loose.dtd">  
+<html > 
+<head><title>Mapping Hierarchies to the Database</title> 
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
+<meta name="generator" content="TeX4ht (https://tug.org/tex4ht/)"> 
+<meta name="originator" content="TeX4ht (https://tug.org/tex4ht/)"> 
+<!-- html,2,sections+ --> 
+<meta name="src" content="norm-ug.tex"> 
+<link rel="stylesheet" type="text/css" href="norm-ug.css"> 
+</head><body 
+>
+   <!--l. 154--><div class="crosslinks"><p class="noindent">[<a 
+href="norm-ugse5.html" >next</a>] [<a 
+href="norm-ugse3.html" >prev</a>] [<a 
+href="norm-ugse3.html#tailnorm-ugse3.html" >prev-tail</a>] [<a 
+href="#tailnorm-ugse4.html">tail</a>] [<a 
+href="norm-ug.html#norm-ugse4.html" >up</a>] </p></div>
+   <h3 class="sectionHead"><span class="titlemark">4   </span> <a 
+href="norm-ug.html#QQ2-5-6" id="x5-40004">Mapping Hierarchies to the Database</a></h3>
+<!--l. 156--><p class="noindent" >The JSON schema (contract) mapping to the database is specified with an additional
+JSON key <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_mapping</span>.
+<!--l. 158--><p class="indent" >   The JSON schema language does not specify this key, so hopefully, third-party
+validators of JSON schemas will ignore it. Mapping is defined at different levels: the
+hierarchy, objects, and components. The mapping definition can use several keys
+under the <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_mapping </span>key.
+<!--l. 160--><p class="noindent" >
+   <h4 class="subsectionHead"><span class="titlemark">4.1   </span> <a 
+href="norm-ug.html#QQ2-5-7" id="x5-50004.1">Mapping Hierarchy</a></h4>
+<!--l. 162--><p class="noindent" >The following keys can be used at the hierarchy level:
+<!--l. 164--><p class="indent" >
+     <dl class="description"><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_schema</span> </dt><dd 
+class="description">
+     <!--l. 165--><p class="noindent" >specifies the PostgreSQL schema name where the tables containing data
+     for the hierarchy are stored. This value is default and can be overridden
+     for any object.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_prefix</span> </dt><dd 
+class="description">
+     <!--l. 166--><p class="noindent" >specifies the character string that is concatenated with names of generated
+     database objects (type definitions and functions). This key is optional; the
+     default value is the hierarchy title. The prefix is needed to ensure that
+     objects generated for different hierarchies have different names.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">norm</span><span 
+class="cmtt-10">_schema</span> </dt><dd 
+class="description">
+     <!--l. 167--><p class="noindent" >The PostgreSQL schema where the generated object will be stored. The
+     default is the same schema as for tables.</dd></dl>
+<!--l. 170--><p class="noindent" >
+   <h4 class="subsectionHead"><span class="titlemark">4.2   </span> <a 
+href="norm-ug.html#QQ2-5-8" id="x5-60004.2">Mapping Objects</a></h4>
+<!--l. 172--><p class="noindent" >The following keys can be specified at the object level:
+<!--l. 174--><p class="indent" >
+
+     <dl class="description"><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_schema</span> </dt><dd 
+class="description">
+     <!--l. 175--><p class="noindent" >specifies the PostgreSQL schema where the table is located. Need only if
+     it differs from the schema specified for the hierarchy.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_table</span> </dt><dd 
+class="description">
+     <!--l. 176--><p class="noindent" >is this object&#8217;s base table name.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">pk</span><span 
+class="cmtt-10">_col</span> </dt><dd 
+class="description">
+     <!--l. 177--><p class="noindent" >the column n that references the parent from the child objects. Typically,
+     it is the primary key of the base table.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">parent</span><span 
+class="cmtt-10">_fk</span><span 
+class="cmtt-10">_col</span> </dt><dd 
+class="description">
+     <!--l. 178--><p class="noindent" >the column referencing the parent object. Usually, it is a foreign key, but
+     NORM does not check that.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_expression</span> </dt><dd 
+class="description">
+     <!--l. 179--><p class="noindent" >specifies that the value of <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_table </span>is a table expression. The correct
+     values of this key are &#8221;Y&#8221; and &#8221;N&#8221; only; the default is &#8221;N&#8221;.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">record</span><span 
+class="cmtt-10">_type</span> </dt><dd 
+class="description">
+     <!--l. 180--><p class="noindent" >is the name of the generated type definition. It is used for outgoing types
+     only and is needed for historical reasons.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">embedded</span> </dt><dd 
+class="description">
+     <!--l. 181--><p class="noindent" >contains a JSON array of specifications of additional tables used as a
+     data source for this object. The format of these specifications is described
+     below.</dd></dl>
+<!--l. 184--><p class="indent" >   An object may include fields extracted from tables other than the base table. The
+mapping relies on aliases in order to identify these additional tables. Each table is
+defined as a separate JSON object in the <span 
+class="cmtt-10">embedded </span>key and includes the following
+keys:
+     <dl class="description"><dt class="description">
+<span 
+class="cmtt-10">alias</span> </dt><dd 
+class="description">
+     <!--l. 187--><p class="noindent" >identifies the additional data source.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_schema</span> </dt><dd 
+class="description">
+     <!--l. 188--><p class="noindent" >is the schema name needed if it differs from the schema for a base table
+     for this object.
+
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_table</span> </dt><dd 
+class="description">
+     <!--l. 189--><p class="noindent" >The name of the table or table expression,
+     </dd><dt class="description">
+<span 
+class="cmtt-10">pk</span><span 
+class="cmtt-10">_col</span> </dt><dd 
+class="description">
+     <!--l. 190--><p class="noindent" >is the column identifying the row, typically the primary key.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">fk</span><span 
+class="cmtt-10">_col</span> </dt><dd 
+class="description">
+     <!--l. 191--><p class="noindent" >the column in the base table referencing the row of the additional table.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_expression</span> </dt><dd 
+class="description">
+     <!--l. 192--><p class="noindent" >The value should be &#8221;Y&#8221;if the <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_table </span>is a table expression. The default
+     is &#8221;N&#8221;.</dd></dl>
+<!--l. 195--><p class="indent" >   The design of <span 
+class="cmtt-10">embedded </span>key may look overcomplicated. However, the same
+additional table may be needed multiple times. For example, the <span 
+class="cmtt-10">flight </span>object
+contains <span 
+class="cmtt-10">departure</span><span 
+class="cmtt-10">_city </span>and <span 
+class="cmtt-10">arrival</span><span 
+class="cmtt-10">_city</span>. Both reside in the <span 
+class="cmtt-10">airport </span>table but
+in different rows. For this reason, the mapping for flight contains aliases <span 
+class="cmtt-10">departure</span>
+and <span 
+class="cmtt-10">arrival </span>that provide links to the <span 
+class="cmtt-10">airport </span>table with different <span 
+class="cmtt-10">fk</span><span 
+class="cmtt-10">_col</span>
+columns.
+<!--l. 198--><p class="noindent" >
+   <h4 class="subsectionHead"><span class="titlemark">4.3   </span> <a 
+href="norm-ug.html#QQ2-5-9" id="x5-70004.3">Mapping Object Attributes</a></h4>
+<!--l. 200--><p class="noindent" >The mapping at the property (field) level may include the following keys:
+<!--l. 202--><p class="indent" >
+     <dl class="description"><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_col</span> </dt><dd 
+class="description">
+     <!--l. 203--><p class="noindent" >column name of the base table or scalar expression. This key is optional.
+     It is unnecessary if the JSON object property&#8217;s name coincides with the
+     table column&#8217;s name.
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_type</span> </dt><dd 
+class="description">
+     <!--l. 204--><p class="noindent" >the PostgreSQL type of the value of <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_col</span>. NORM uses this value only
+     if it cannot find the type automatically (from the PostgreSQL catalog).
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_expression</span> </dt><dd 
+class="description">
+     <!--l. 205--><p class="noindent" >Should be &#8221;Y&#8221; if the value of <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_col </span>is an expression. The default is &#8221;N&#8221;.
+
+     </dd><dt class="description">
+<span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_source</span><span 
+class="cmtt-10">_alias</span> </dt><dd 
+class="description">
+     <!--l. 206--><p class="noindent" >is an alias of the additional table.</dd></dl>
+<!--l. 209--><p class="indent" >   Mapping of composite JSON fields (that is, objects and arrays) requires
+additional clarifications. If a JSON field is an array, it refers to another object and its
+mapping. In contrast, for fields that have JSON type <span 
+class="cmtt-10">object</span>, the key <span 
+class="cmtt-10">db</span><span 
+class="cmtt-10">_col</span>
+specifies the column that refers to a single object instance (that is, to a row in the
+base table of the object.
+<!--l. 213--><p class="indent" >   The inclusion of objects is similar to the inclusion of columns from additional
+tables. The differences are:
+     <ul class="itemize1">
+     <li class="itemize">
+     <!--l. 215--><p class="noindent" >The data in the composite object is surrounded with braces (so that it is
+     a JSON object, while the data from additional tables reside on the same
+     level as other scalar fields.
+     </li>
+     <li class="itemize">
+     <!--l. 216--><p class="noindent" >The nested object may have a complex structure, e.g., containing arrays
+     and objects.</li></ul>
+<!--l. 219--><p class="indent" >   An extended example is needed here.
+<!--l. 221--><p class="indent" >   Several examples of mappings can be found in the NORM repository.
+<!--l. 223--><p class="noindent" >
+   <h4 class="subsectionHead"><span class="titlemark">4.4   </span> <a 
+href="norm-ug.html#QQ2-5-10" id="x5-80004.4">Expressions</a></h4>
+<!--l. 225--><p class="noindent" >An application may require data that are not stored in the database but
+can be calculated from the stored data. For example, a booking includes a
+departure date and time in the local time zone of the departure airport.
+However, the <span 
+class="cmtt-10">flight </span>table contains only the departure timestamp in the UTC.
+The calculation of the departure date also requires a time zone from the
+<span 
+class="cmtt-10">airport </span>table. The following mapping specifies the calculation on the database
+side:
+
+   <pre class="verbatim" id="verbatim-4">
+"departure_date":&#x00A0;{
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;"type":&#x00A0;"text",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_mapping":&#x00A0;{
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_type":&#x00A0;"text",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_expression":&#x00A0;"Y",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_col":"to_char(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;scheduled_departure
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;at&#x00A0;time&#x00A0;zone&#x00A0;departure.airport_tz,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#8217;YYYY-MM-DD&#8217;)"
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;}
+&#x00A0;},
+</pre>
+<!--l. 239--><p class="nopar" >
+<!--l. 241--><p class="indent" >   Note that <span 
+class="cmtt-10">scheduled</span><span 
+class="cmtt-10">_departure </span>and <span 
+class="cmtt-10">airport</span><span 
+class="cmtt-10">_tz </span>are extracted from different
+tables: the timestamp <span 
+class="cmtt-10">scheduled</span><span 
+class="cmtt-10">_departure </span>is a column of <span 
+class="cmtt-10">flight </span>table (the base
+table for the object), while <span 
+class="cmtt-10">airport</span><span 
+class="cmtt-10">_tz </span>comes from the <span 
+class="cmtt-10">airport </span>table specified with
+the alas <span 
+class="cmtt-10">departure</span>.
+<!--l. 243--><p class="indent" >   The mappings for departure time, arrival date, and arrival time are similar.
+<!--l. 245--><p class="indent" >   The table expressions can be specified instead of table names as values of
+db_table or in the list of aliases at the object level. For example, if the /tt flight
+object includes the following object definition, an application can receive summary
+values for a flight.
+
+   <pre class="verbatim" id="verbatim-5">
+"summary":{
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"type":&#x00A0;"object",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_mapping":&#x00A0;{
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_table":"(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;flight_id,&#x00A0;count(*)&#x00A0;as&#x00A0;passenger_cnt
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;from&#x00A0;boarding_pass
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;group&#x00A0;by&#x00A0;flight_id)",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"db_expression":&#x00A0;"Y",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"pk_col":&#x00A0;"flight_id",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"parent_fk_col":"flight_id",
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;"record_type":&#x00A0;"pass_summary"
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;},&#x00A0;...}
+</pre>
+<!--l. 260--><p class="nopar" >
+<!--l. 262--><p class="indent" >   However, such inclusion of the table expressions may cause poor performance of
+generated queries. The problem is that generated filtering criteria are applied to the
+table expression. Pushing the filtering conditions inside the table expression
+can resolve this issue, but the generator cannot. In some cases, this issue
+can be resolved using database views instead of table expressions in the
+mapping.
+
+   <!--l. 265--><div class="crosslinks"><p class="noindent">[<a 
+href="norm-ugse5.html" >next</a>] [<a 
+href="norm-ugse3.html" >prev</a>] [<a 
+href="norm-ugse3.html#tailnorm-ugse3.html" >prev-tail</a>] [<a 
+href="norm-ugse4.html" >front</a>] [<a 
+href="norm-ug.html#norm-ugse4.html" >up</a>] </p></div>
+<!--l. 265--><p class="indent" >   <a 
+ id="tailnorm-ugse4.html"></a>   
+</body></html> 

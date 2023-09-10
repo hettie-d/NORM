@@ -1,0 +1,237 @@
+ {
+     "type": "array",
+     "items": {
+         "$ref": "#/definitions/booking"
+     },
+     "title": "booking_hierarchy",
+     "description": "all booking details",
+     "db_mapping": {
+         "db_schema": "postgres_air",
+         "db_prefix":"bkng",
+         "norm_schema":"norm"
+     },
+     "definitions": {
+         "booking": {
+             "type": "object",
+             "db_mapping": {
+                 "pk_col": "booking_id",
+                 "db_table": "booking",
+                 "record_type": "booking_record"
+             },
+             "properties": {
+                 "booking_id": {
+                     "type": "number",
+                     "db_maping": {
+                         "db_col": "booking_id"
+                     }
+                 },
+                 "passengers": {
+                     "type": "array",
+                     "items": {
+                         "$ref": "#/definitions/passenger"
+                     }
+                 },
+                 "booking_legs": {
+                     "type": "array",
+                     "items": {
+                         "$ref": "#/definitions/booking_leg"
+                     }
+                 },
+        "buyer":{
+                "type": "number",
+                "db_mapping":{
+                    "db_col": "account_id"
+                   }
+           },
+        "buyer_email":{
+                "type": "string",
+                "db_mapping":{
+                    "db_col": "email"
+                   }
+           },
+        "buyer_phone":{
+                "type": "string",
+                "db_mapping":{
+                    "db_col": "phone"
+                   }
+           },
+                 "booking_reference": {
+                     "type": "string",
+                     "db_mapping": {
+                         "db_col": "booking_ref"
+                     }
+                 }
+             }
+         },
+         "flight": {
+             "type": "object",
+             "db_mapping": {
+                 "pk_col": "flight_id",
+                 "db_table": "flight",
+                 "embedded": [
+                     {
+                         "alias": "departure",
+                         "fk_col": "departure_airport",
+                         "pk_col": "airport_code",
+                         "db_table": "airport"
+                     },
+                     {
+                         "alias": "arrival",
+                         "fk_col": "arrival_airport",
+                         "pk_col": "airport_code",
+                         "db_table": "airport"
+                     }
+                 ],
+                 "record_type": "flight_record"
+             },
+             "properties": {
+                 "flight_no": {
+                     "type": "text"
+                 },
+                 "departure_city": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_col": "city",
+                         "db_source_alias": "departure"
+                     }
+                 },
+                 "departure_airport_code": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_col": "departure_airport"
+                     }
+                 },
+                 "departure_airport_name": {
+                     "type": "string",
+                     "db_mapping": {
+                         "db_col": "airport_name",
+                         "db_source_alias": "departure"
+                     }
+                 },
+                 "scheduled_departure": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_type": "timestamptz"
+                     }
+                 },
+                 "departure_date": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_type": "text",
+                         "db_expression":"Y",
+                         "db_col":"to_char(scheduled_departure at time zone departure.airport_tz, 'YYYY-MM-DD')"
+                     }
+                 },
+                 "departure_time": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_type": "text",
+                         "db_expression":"Y",
+                         "db_col":"to_char(scheduled_departure at time zone departure.airport_tz, 'HH24:MI')"
+                     }
+                 },
+                 "arrival_city": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_col": "city",
+                         "db_source_alias": "arrival"
+                     }
+                 },
+                 "arrival_airport_code": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_col": "arrival_airport"
+                     }
+                 },
+                 "arrival_airport_name": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_col": "airport_name",
+                         "db_source_alias": "arrival"
+                     }
+                 },
+                 "scheduled_arrival": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_type": "timestamptz"
+                     }
+                 },
+                 "arrival_date": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_type": "text",
+                         "db_expression":"Y",
+                         "db_col":"to_char(scheduled_arrival at time zone arrival.airport_tz, 'YYYY-MM-DD')"
+                     }
+                 },
+                 "arrival_time": {
+                     "type": "text",
+                     "db_mapping": {
+                         "db_type": "text",
+                         "db_expression":"Y",
+                         "db_col":"to_char(scheduled_arrival at time zone arrival.airport_tz, 'HH24:MI')"
+                     }
+                 },
+        "status":{
+                "type": "text"
+           },
+             }
+         },
+         "passenger": {
+             "type": "object",
+             "db_mapping": {
+                 "pk_col": "passenger_id",
+                 "db_table": "passenger",
+                 "record_type": "passenger_record",
+                 "parent_fk_col": "booking_id"
+             },
+             "properties": {
+                 "last_name": {
+                     "type": "text"
+                 },
+                 "account_id": {
+                     "type": "number"
+                 },
+                 "first_name": {
+                     "type": "text"
+                 },
+                 "passenger_id": {
+                     "type": "number"
+                 },
+                 "passenger_no": {
+                     "type": "number"
+                 }
+             }
+         },
+         "booking_leg": {
+             "type": "object",
+             "db_mapping": {
+                 "pk_col": "booking_leg_id",
+                 "db_table": "booking_leg",
+                 "record_type": "booking_leg_record",
+                 "parent_fk_col": "booking_id"
+             },
+             "properties": {
+                 "flight_id": {
+                     "type": "number"
+                 },
+                 "flight": {
+                     "type": "object",
+                     "items": {
+                         "$ref": "#/definitions/flight"
+                     },
+                     "db_mapping": {
+                         "fk_col": "flight_id",
+                         "db_col":"flight_id"
+                     }
+                 },
+                 "leg_num": {
+                     "type": "number"
+                 },
+                 "booking_leg_id": {
+                     "type": "number"
+                 }
+             }
+         }
+     }
+ }

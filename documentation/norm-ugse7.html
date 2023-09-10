@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"  
+  "http://www.w3.org/TR/html4/loose.dtd">  
+<html > 
+<head><title>Queries</title> 
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"> 
+<meta name="generator" content="TeX4ht (https://tug.org/tex4ht/)"> 
+<meta name="originator" content="TeX4ht (https://tug.org/tex4ht/)"> 
+<!-- html,2,sections+ --> 
+<meta name="src" content="norm-ug.tex"> 
+<link rel="stylesheet" type="text/css" href="norm-ug.css"> 
+</head><body 
+>
+   <!--l. 280--><div class="crosslinks"><p class="noindent">[<a 
+href="norm-ugse8.html" >next</a>] [<a 
+href="norm-ugse6.html" >prev</a>] [<a 
+href="norm-ugse6.html#tailnorm-ugse6.html" >prev-tail</a>] [<a 
+href="#tailnorm-ugse7.html">tail</a>] [<a 
+href="norm-ug.html#norm-ugse7.html" >up</a>] </p></div>
+   <h3 class="sectionHead"><span class="titlemark">7   </span> <a 
+href="norm-ug.html#QQ2-8-13" id="x8-110007">Queries</a></h3>
+<!--l. 282--><p class="noindent" >The NORM queries follow the same pattern. Any query returns a single value, an
+array of complete hierarchies satisfying the contract. Filtering conditions can be
+specified for attributes for attributes of nested objects at any level of the hierarchy. If
+at least one instance of nested object satisfies the condition, then the whole hierarchy
+is included in the output.
+<!--l. 284--><p class="indent" >   For example, suppose the conditions specify a passenger&#8217;s last name, departure
+date, and departure airport. In that case, the query will return all bookings that
+contain such passenger and flight on that date from the specified airport, including
+all passengers and all flights on these bookings.
+<!--l. 286--><p class="indent" >   NORM queries should not use explicit joins because all object relationships
+should be represented in the hierarchical structure.
+<!--l. 288--><p class="indent" >   The query output is produced as a PostgreSQL array of composite objects that
+can contain other composite objects and arrays as attributes. The structure of these
+objects is defined with PostgreSQL types generated from the JSON schema. The
+purpose of these types is twofold:
+     <ul class="itemize1">
+     <li class="itemize">
+     <!--l. 290--><p class="noindent" >to enforce the correct structure of the output
+     </li>
+     <li class="itemize">
+     <!--l. 291--><p class="noindent" >to provide proper JSON key names.</li></ul>
+<!--l. 294--><p class="noindent" >
+   <h4 class="subsectionHead"><span class="titlemark">7.1   </span> <a 
+href="norm-ug.html#QQ2-8-14" id="x8-120007.1">Building Query Output</a></h4>
+<!--l. 296--><p class="noindent" >The function
+
+   <pre class="verbatim" id="verbatim-7">
+&#x00A0;norm_gen.generate_types(p_schema_title&#x00A0;text)
+returns&#x00A0;text
+</pre>
+<!--l. 300--><p class="nopar" > returns the SQL script containing CREATE TYPE statements from the contract
+(JSON schema) identified by its title. The types are created in the bottom-up
+order.
+<!--l. 303--><p class="indent" >   The function
+
+   <pre class="verbatim" id="verbatim-8">
+&#x00A0;norm_gen.nested_root(&#x00A0;p_hierarchy&#x00A0;text)&#x00A0;returns&#x00A0;text
+&#x00A0;
+</pre>
+<!--l. 306--><p class="nopar" > returns SELECT and FROM clauses of a query. These clauses depend on the JSON
+schema, as any NORM query returns an array of full hierarchical objects of the same
+(root) type. To produce a complete query, the output of this function must be
+appended with the WHERE clause.
+<!--l. 309--><p class="indent" >   The following code builds <span 
+class="cmtt-10">booking</span><span 
+class="cmtt-10">_hierarchy</span>:
+
+   <pre class="verbatim" id="verbatim-9">
+&#x00A0;&#x00A0;/*&#x00A0;selecting&#x00A0;booking_hierarchy&#x00A0;booking&#x00A0;*/
+&#x00A0;&#x00A0;select
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;array_agg(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;/*&#x00A0;Entering&#x00A0;booking_record&#x00A0;*/
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;row(top.booking_id&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;array_agg(&#x00A0;&#x00A0;/*&#x00A0;Entering&#x00A0;passenger_record&#x00A0;*/
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;row(passengers.last_name&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;passengers.account_id,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;passengers.first_name,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;passengers.passenger_id,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;passengers.passenger_no)::norm.bh_passenger_record)
+&#x00A0;from&#x00A0;&#x00A0;postgres_air.passenger&#x00A0;passengers
+&#x00A0;were&#x00A0;top.booking_id&#x00A0;=&#x00A0;passengers.booking_id
+&#x00A0;)
+&#x00A0;&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;array_agg(&#x00A0;&#x00A0;/*&#x00A0;Entering&#x00A0;booking_leg_record&#x00A0;*/
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;row(booking_legs.flight_id&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;(
+&#x00A0;select&#x00A0;&#x00A0;(&#x00A0;&#x00A0;/*&#x00A0;Entering&#x00A0;flight_record&#x00A0;*/
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;row(flight.flight_no&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;arrival.city&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;departure.city&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;flight.scheduled_arrival&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;flight.scheduled_departure&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;flight.arrival_airport&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;arrival.airport_name&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;flight.departure_airport&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;departure.airport_name)::norm.bh_flight_record)
+&#x00A0;from&#x00A0;&#x00A0;postgres_air.flight&#x00A0;&#x00A0;flight
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;join&#x00A0;postgres_air.airport&#x00A0;departure&#x00A0;on&#x00A0;departure.airport_code&#x00A0;=&#x00A0;flight.departure_airport
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;join&#x00A0;postgres_air.airport&#x00A0;arrival&#x00A0;on&#x00A0;arrival.airport_code&#x00A0;=&#x00A0;flight.arrival_airport
+&#x00A0;where&#x00A0;&#x00A0;booking_legs.flight_id&#x00A0;=&#x00A0;flight.flight_id
+&#x00A0;)
+&#x00A0;&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;booking_legs.leg_num&#x00A0;&#x00A0;,
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;booking_legs.booking_leg_id)::norm.bh_booking_leg_record)
+&#x00A0;from&#x00A0;&#x00A0;postgres_air.booking_leg&#x00A0;&#x00A0;booking_legs
+&#x00A0;where&#x00A0;&#x00A0;top.booking_id&#x00A0;=&#x00A0;booking_legs.booking_id
+&#x00A0;)
+&#x00A0;&#x00A0;&#x00A0;,
+
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;top.booking_ref)::norm.bh_booking_record)
+&#x00A0;from&#x00A0;&#x00A0;postgres_air.booking&#x00A0;&#x00A0;top
+</pre>
+<!--l. 355--><p class="nopar" >
+<!--l. 357--><p class="indent" >   NORM promotes the use of stored functions. The function
+
+   <pre class="verbatim" id="verbatim-10">
+norm_gen.generate_select_by_id_function(
+&#x00A0;&#x00A0;p_schema_name&#x00A0;text,
+&#x00A0;&#x00A0;p_root_object_name&#x00A0;text&#x00A0;default&#x00A0;null)
+returns&#x00A0;boolean
+</pre>
+<!--l. 364--><p class="nopar" > generates and stores in the database a function that combines generated
+SELECT and FROM clauses with filtering criteria built from an array of
+primary key values for the root of the hierarchy and then executes the resulting
+SQL dynamically. The returned result indicates the success or failure of the
+generation. It is not an easy task to find out the name of the generated
+function.
+<!--l. 368--><p class="noindent" >
+   <h4 class="subsectionHead"><span class="titlemark">7.2   </span> <a 
+href="norm-ug.html#QQ2-8-15" id="x8-130007.2">Specifying Filtering Conditions</a></h4>
+<!--l. 370--><p class="noindent" >NORM generates filtering conditions from a search specification expressed in JSON
+format from simple conditions on attributes of any object in the hierarchy. The
+simple condition can be in one of two forms:
+
+   <pre class="verbatim" id="verbatim-11">
+{"&#x003C;object-key&#x003E;":{"&#x003C;predicate&#x003E;":"&#x003C;value&#x003E;"}}
+{"&#x003C;object-key&#x003E;":"&#x003C;value&#x003E;"}
+</pre>
+<!--l. 375--><p class="nopar" >
+<!--l. 377--><p class="indent" >   Currently, available predicates are listed in the table <a 
+href="#x8-130013">3<!--tex4ht:ref: binary-predicates --></a>. F, the second form of the
+simple condition &#8221;<span 
+class="tcrm-1000">$</span>eq&#8221; is the predicate.
+   <div class="table">
+
+<!--l. 379--><p class="indent" >   <a 
+ id="x8-130013"></a><hr class="float"><div class="float" 
+>
+
+ <div class="caption" 
+><span class="id">Table&#x00A0;3: </span><span  
+class="content">Binary predicaates</span></div><!--tex4ht:label?: x8-130013 -->
+<div class="tabular"> <table id="TBL-4" class="tabular" 
+ 
+><colgroup id="TBL-4-1g"><col 
+id="TBL-4-1"></colgroup><colgroup id="TBL-4-2g"><col 
+id="TBL-4-2"></colgroup><colgroup id="TBL-4-3g"><col 
+id="TBL-4-3"></colgroup><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-1-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-1-1"  
+class="td11">key </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-1-2"  
+class="td11">  SQL op   </td><td  style="white-space:normal; text-align:left;" id="TBL-4-1-3"  
+class="td11"><!--l. 384--><p class="noindent" >description                                     </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-2-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-2-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>eq  </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-2-2"  
+class="td11">     =       </td><td  style="white-space:normal; text-align:left;" id="TBL-4-2-3"  
+class="td11"><!--l. 386--><p class="noindent" >equals to                                       </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-3-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-3-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>lt   </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-3-2"  
+class="td11">     ¡        </td><td  style="white-space:normal; text-align:left;" id="TBL-4-3-3"  
+class="td11"><!--l. 387--><p class="noindent" >less                                               </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-4-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-4-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>le   </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-4-2"  
+class="td11">    ¡=       </td><td  style="white-space:normal; text-align:left;" id="TBL-4-4-3"  
+class="td11"><!--l. 388--><p class="noindent" >less or equal                                   </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-5-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-5-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>ne  </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-5-2"  
+class="td11">     ¡¿       </td><td  style="white-space:normal; text-align:left;" id="TBL-4-5-3"  
+class="td11"><!--l. 389--><p class="noindent" >not equals                                      </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-6-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-6-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>ge   </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-6-2"  
+class="td11">    ¿=      </td><td  style="white-space:normal; text-align:left;" id="TBL-4-6-3"  
+class="td11"><!--l. 390--><p class="noindent" >greater or equal                              </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-7-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-7-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>gt   </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-7-2"  
+class="td11">     ¿        </td><td  style="white-space:normal; text-align:left;" id="TBL-4-7-3"  
+class="td11"><!--l. 391--><p class="noindent" >greater                                          </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-8-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-8-1"  
+class="td11"><span 
+class="tcrm-1000">$</span>like </td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-8-2"  
+class="td11">   LIKE     </td><td  style="white-space:normal; text-align:left;" id="TBL-4-8-3"  
+class="td11"><!--l. 392--><p class="noindent" >SQL LIKE predicate                        </td>
+</tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-9-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-9-1"  
+class="td11">other</td><td  style="white-space:nowrap; text-align:center;" id="TBL-4-9-2"  
+class="td11">UNKNOWN</td><td  style="white-space:normal; text-align:left;" id="TBL-4-9-3"  
+class="td11"><!--l. 395--><p class="noindent" >Forces SQL error                             </td>
+</tr><tr 
+class="hline"><td><hr></td><td><hr></td><td><hr></td></tr><tr  
+ style="vertical-align:baseline;" id="TBL-4-10-"><td  style="white-space:nowrap; text-align:left;" id="TBL-4-10-1"  
+class="td11">    </td></tr></table>                                                           </div>
+
+   </div><hr class="endfloat" />
+   </div>
+<!--l. 400--><p class="indent" >   Simple conditions are placed into a hierarchy defined in the JSON schema of the
+query. The top key is the schema title; other keys represent object types for which
+simple conditions are set. The object types are needed only to resolve ambiguities
+(same attribute name in different object types).
+<!--l. 402--><p class="indent" >   An example of search specification looks as follows:
+
+   <pre class="verbatim" id="verbatim-12">
+{
+"booking_hierarchy":{
+"departure_airport_code":"ORD",
+"arrival_city":{"$like":"NEW%"},
+"last_name":"Smith"}
+}
+</pre>
+<!--l. 410--><p class="nopar" >
+<!--l. 412--><p class="indent" >   This specification is converted into the following SQL conditions that can be
+placed in WHERE clause appended to a generated SELECT-FROM and potentially
+combined with hand-crafted conditions:
+
+   <pre class="verbatim" id="verbatim-13">
+&#x00A0;&#x00A0;booking_id&#x00A0;IN&#x00A0;(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;booking_id&#x00A0;from&#x00A0;postgres_air.booking_leg&#x00A0;where
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;flight_id&#x00A0;IN&#x00A0;(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;flight_id&#x00A0;from&#x00A0;postgres_air.flight&#x00A0;where
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;arrival_airport&#x00A0;IN&#x00A0;(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;airport_code&#x00A0;from&#x00A0;postgres_air.airport&#x00A0;where
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;city&#x00A0;&#x00A0;LIKE&#x00A0;&#x00A0;(&#8217;NEW%&#8217;::text)&#x00A0;)
+&#x00A0;AND&#x00A0;&#x00A0;departure_airport&#x00A0;&#x00A0;=&#x00A0;&#x00A0;(&#8217;ORD&#8217;::bpchar)&#x00A0;)&#x00A0;)
+&#x00A0;AND&#x00A0;&#x00A0;booking_id&#x00A0;IN&#x00A0;(
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;select&#x00A0;booking_id&#x00A0;from&#x00A0;postgres_air.passenger&#x00A0;where
+&#x00A0;&#x00A0;&#x00A0;&#x00A0;&#x00A0;last_name&#x00A0;&#x00A0;=&#x00A0;&#x00A0;(&#8217;Smith&#8217;::text)&#x00A0;)
+</pre>
+<!--l. 426--><p class="nopar" >
+<!--l. 428--><p class="indent" >   The function <span 
+class="cmtt-10">build</span><span 
+class="cmtt-10">_conditions </span>iconverts JSON specification into SLQ
+conditions;
+
+   <pre class="verbatim" id="verbatim-14">
+norm_gen.build_conditions&#x00A0;(p_in&#x00A0;json)
+returns&#x00A0;text
+</pre>
+<!--l. 433--><p class="nopar" >
+<!--l. 435--><p class="indent" >   Finally, the following function generates an executable function that combines
+generated SELECT-FROM with search conditions and executes dynamic
+SQL:
+
+   <pre class="verbatim" id="verbatim-15">
+norm_gen.generate_search_generic_function(
+&#x00A0;&#x00A0;p_schema_name&#x00A0;text,
+&#x00A0;&#x00A0;p_root_object_name&#x00A0;text&#x00A0;default&#x00A0;null)
+returns&#x00A0;boolean
+</pre>
+<!--l. 442--><p class="nopar" >
+<!--l. 444--><p class="indent" >   Note that although the NORM search specification may resemble other languages
+designed for querying JSON documents, no attempt is made in NORM to implement
+any of these languages or any subset of them.
+
+   <!--l. 447--><div class="crosslinks"><p class="noindent">[<a 
+href="norm-ugse8.html" >next</a>] [<a 
+href="norm-ugse6.html" >prev</a>] [<a 
+href="norm-ugse6.html#tailnorm-ugse6.html" >prev-tail</a>] [<a 
+href="norm-ugse7.html" >front</a>] [<a 
+href="norm-ug.html#norm-ugse7.html" >up</a>] </p></div>
+<!--l. 447--><p class="indent" >   <a 
+ id="tailnorm-ugse7.html"></a>   
+</body></html> 

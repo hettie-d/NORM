@@ -1,0 +1,86 @@
+ {
+     "title": "flight_summary_hierarchy",
+     "description":"Shows how to include aggregates",
+     "type": "array",
+     "items": {
+         "$ref": "#/definitions/flight"
+               },
+     "db_mapping":{
+     	   "db_schema":"postgres_air",
+     	   "db_prefix":"fs",
+     	   "norm_schema":"norm"
+     	            },
+     "definitions": {
+       "flight": {
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"flight",
+                  "pk_col": "flight_id",
+                  "record_type": "flight_summary_row"
+              },
+     "properties":{
+        "flight_id":{
+                "type": "number"
+           },
+        "flight_no":{
+                "type": "text"
+           },
+                 "summary": {
+                     "type": "object",
+                     "items": {
+                         "$ref": "#/definitions/summary"
+                     },
+                     "db_mapping": {
+                         "fk_col": "flight_id",
+                         "db_col":"flight_id"
+                     }
+                 },
+        "scheduled_departure":{
+                "type": "text",
+                "format":"date-time",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "scheduled_arrival":{
+                "type": "text",
+                "format":"date-time",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "departure_airport_code":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"departure_airport" 
+                }
+           },
+        "arrival_airport_code":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"arrival_airport" 
+                }
+           }
+      } 
+     }, 
+"summary":{
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"(select flight_id, count(*) as passenger_cnt from boarding_pass group by flight_id)",
+                  "db_expression":"Y",
+                  "pk_col": "flight_id",
+                  "parent_fk_col":"flight_id",
+                  "record_type": "pass_summary"
+           },
+           "properties": {
+               "passenger_cnt":{
+               "type":"number",
+               "db_mapping": {
+                   "db_type":"int4"
+                  }
+               }
+              }
+        }
+      }
+}
+          

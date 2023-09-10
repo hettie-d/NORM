@@ -1,0 +1,221 @@
+ {
+     "title": "booking_hierarchy",
+     "description":"all booking details with DB mappings",
+     "type": "array",
+     "items": {
+         "$ref": "#/definitions/booking"
+               },
+     "db_mapping":{
+     	   "db_schema":"postgres_air"
+     	            },
+     "definitions": {
+     "booking": {
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"booking",
+                  "pk_col": "booking_id",
+                  "record_type": "booking_record"
+              },
+     "properties":{
+        "booking_reference":{
+                "type": "string",
+                "db_mapping":{
+                    "db_col": "booking_ref"
+                   }
+           },
+        "booking_id":{
+                "type": "number",
+                "db_maping":{
+                    "db_col": "booking_id"
+                   }
+           },
+        "buyer":{
+                "type": "number",
+                "db_mapping":{
+                    "db_col": "account_id"
+                   }
+           },
+        "buyer_email":{
+                "type": "string",
+                "db_mapping":{
+                    "db_col": "email"
+                   }
+           },
+        "buyer_phone":{
+                "type": "string",
+                "db_mapping":{
+                    "db_col": "phone"
+                   }
+           },
+        "booking_legs":{
+                "type": "array",
+                "items": {
+                     "$ref":"#/definitions/booking_leg"
+                      }
+           },
+         "passengers":{
+                "type": "array",
+                "items": {
+                     "$ref":"#/definitions/passenger"
+                      }
+           }
+        }
+       },
+       "booking_leg": {
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"booking_leg",
+                  "pk_col": "booking_id",
+                  "parent_fk_col":"booking_id",
+                  "record_type": "booking_leg_record"
+              },
+     "properties":{
+        "booking_leg_id":{
+                "type": "number"
+           },
+        "leg_num":{
+                "type": "number"
+           },
+        "flight":{
+                "type": "object",
+                "items": {
+                     "$ref":"#/definitions/flight"
+                      },
+                 "db_mapping":{
+                    "fk_col":"flight_id"
+                    }
+           }
+       } 
+     },         
+     
+       "flight": {
+              "type": "object",
+              "db_mapping": {
+                  "db_table":"flight",
+                  "pk_col": "flight_id",
+                  "record_type": "flight_record",
+                  "embedded":[
+                     {"alias":"departure",
+                     "db_table":"airport",
+                     "pk_col":"airport_code",
+                     "fk_col":"departure_airport"
+                     },
+                     {"alias":"arrival",
+                     "db_table":"airport",
+                     "pk_col":"airport_code",
+                     "fk_col":"arrival_airport"
+                     }
+                     ]
+              },
+     "properties":{
+        "flight_id":{
+                "type": "number"
+           },
+        "flight_no":{
+                "type": "text"
+           },
+        "scheduled_departure":{
+                "type": "text",
+                "format":"date-time ???",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "scheduled_arrival":{
+                "type": "text",
+                "format":"date-time ???",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "actual_departure":{
+                "type": "text",
+                "format":"date-time ???",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "actual_arrival":{
+                "type": "text",
+                "format":"date-time ???",
+                "db_mapping": {
+                    "db_type":"timestamptz"
+                }
+           },
+        "status":{
+                "type": "text"
+           },
+        "departure_airport_code":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"departure_airport" 
+                }
+           },
+        "arrival_airport_code":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"arrival_airport" 
+                }
+           },
+        "departure_airport_name":{
+                "type": "string",
+                "db_mapping":{
+                     "db_col":"airport_name",
+                     "db_source_alias":"departure" 
+                }
+           },
+        "arrival_airport_name":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"airport_name",
+                     "db_source_alias":"arrival" 
+                }
+           },
+        "departure_city":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"city",
+                     "db_source_alias":"departure" 
+                }
+           },
+         "arrival_city":{
+                "type": "text",
+                "db_mapping":{
+                     "db_col":"city",
+                     "db_source_alias":"arrival" 
+                }
+           }
+      } 
+     }, 
+     "passenger":{
+              "type": "object",
+               "db_mapping": {
+                  "db_table":"passenger",
+                  "pk_col": "passenger_id",
+                  "parent_fk_col":"booking_id",
+                  "record_type": "passenger_record"
+                    },
+              "properties":{
+                   "passenger_id":{
+                           "type": "number"
+                      },
+                   "booking_id":{
+                           "type": "number"
+                      },
+                   "passenger_no":{
+                           "type": "number"
+                      },
+                   "first_name":{
+                           "type": "text"
+                      },
+                   "last_name":{
+                           "type": "text"
+                      },
+                   "account_id":{
+                           "type": "number"
+                       }
+                    }
+                 }
+      }
+}
+          

@@ -1,0 +1,106 @@
+ {
+     "type": "array",
+     "title": "booking_hierarchy",
+     "description": "all booking details",
+     "items": {
+         "$ref": "#/definitions/booking"
+     },
+     "definitions": {
+         "booking": {
+             "type": "object",
+             "properties": {
+                 "booking_id": {
+                     "type": "number"
+                 },
+                 "passengers": {
+                     "type": "array",
+                     "items": {
+                         "$ref": "#/definitions/passenger"
+                     }
+                 },
+                 "booking_legs": {
+                     "type": "array",
+                     "items": {
+                         "$ref": "#/definitions/booking_leg"
+                     }
+                 },
+                 "booking_reference": {
+                     "type": "string"
+                 }
+             }
+         },
+         "flight": {
+             "type": "object",
+             "properties": {
+                 "flight_no": {
+                     "type": "string"
+                 },
+                 "arrival_city": {
+                     "type": "string"
+                 },
+                 "departure_city": {
+                     "type": "string"
+                 },
+                 "scheduled_arrival": {
+                     "type": "string"
+                     
+                 },
+                 "scheduled_departure": {
+                     "type": "string"
+                 },
+                 "arrival_airport_code": {
+                     "type": "string"
+                 },
+                 "arrival_airport_name": {
+                     "type": "string"
+                 },
+                 "departure_airport_code": {
+                     "type": "string"
+                 },
+                 "departure_airport_name": {
+                     "type": "string"
+                 }
+             }
+         },
+         "passenger": {
+             "type": "object",
+             "properties": {
+                 "last_name": {
+                     "type": "string"
+                 },
+                 "account_id": {
+                     "type": "number"
+                 },
+                 "first_name": {
+                     "type": "string"
+                 },
+                 "passenger_id": {
+                     "type": "number"
+                 },
+                 "passenger_no": {
+                     "type": "number"
+                 }
+             }
+         },
+         "booking_leg": {
+             "type": "object",
+             "properties": {
+                 "flight_id": {
+                     "type": "number"
+                 },
+                 "flight": {
+                     "type": "object",
+                     "items": {
+                         "$ref": "#/definitions/flight"
+                     }
+                 },
+                 "leg_num": {
+                     "type": "number"
+                 },
+                 "booking_leg_id": {
+                     "type": "number"
+                 }
+             }
+         }
+     }
+ }
