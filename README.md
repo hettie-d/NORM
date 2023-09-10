@@ -11,24 +11,26 @@
 
 This repo contains a set of packages that can be used to automate the process of building NORM functions.
 
-To automate this process, we need to present a contract more formally. We present a contract as a JSON schema, then parse it and store the results in meta tables, later used to build the types and functions.
+The contract between an applicarion and a database is presented in the form of JSON schema, which is then parsed and the results in meta tables. This information is later used to build Postgres types and functions.
 
 
  
  ##  TOC:
  
- * The documentation directory contains: 
- * The presentation directory contains ppt of the  presentation from SOFSEM 2020 conference, where NORM was first officially announced.Take a look to find out why NORM was developed, and what are the advantages of this approach.
+ * The documentation directory contains: NORM user Guide (HTML and pdf format)
+ * The presentation directory contains ppt of the  presentation from SOFSEM 2020 conference, where NORM was first officially announced, and a presentation from Swiss PG Day 2022 when the automated funcitons generation was introduced.
  * The sql directory contains a source code for the generator
- 
+ * The examples diectory contains examples of JSON schemas which can be used as input for NORM. All schemas are based on postges_air database.
+ * obsolete-example directory contains an example which was used in the earlie NOM presentations.
 
 ## Quick Start
 
 To use NORM, run the file 
 
-\_load\_all\_norm\_gen.sql from this directory on your local Postgres database
+\_load\_all.sql from the sql directory on your local Postgres database
 
-It will create a NORM_GEN schema with metadata tables and deploy the following packages:
+It will create a NORM schema with metadata tables and deploy the following packages:
+
 process_schema
 
 build_conditions
