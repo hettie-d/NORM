@@ -5,8 +5,7 @@
  NORM is a methodology which allows object-oriented applications to interact with relational databases
  directly, without involving any ORM. 
  
- This methodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206) and was fully implemented at Braviant Holidings, Chicago IL.
-
+ This methodology was developed by [Hettie Dombrovskaya](https://github.com/hettie-d) and [Boris Novikov](https://github.com/bn1206). While a completely automated version was never implemented in any production environment, it's manual version (using functions instead of ORM) was implemented at Braviant Holdings.
 
 ## What's in the repo?
 
@@ -51,6 +50,6 @@ In addition, it will create a function ts_all which runs all functions from the 
 
 After that, we are ready to generate all PostgeSQL functions which will be called from the application.
 
-For details, consult the [User Guide](documentation/NORM-ug.html) 
+For details, consult the [User Guide](documentation/norm-ug.html) 
 
 Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder.
