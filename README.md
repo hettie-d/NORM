@@ -11,7 +11,7 @@
 
 This repo contains a set of packages that can be used to automate the process of building NORM functions.
 
-The contract between an applicarion and a database is presented in the form of JSON schema, which is then parsed and the results in meta tables. This information is later used to build Postgres types and functions.
+The contract between an applicarion and a database is presented in the form of JSON schema, which is then parsed and the results are stored in metatables. This information is later used to build Postgres types and functions.
 
 
  

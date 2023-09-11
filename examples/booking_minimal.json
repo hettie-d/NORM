@@ -3,7 +3,7 @@
      "items": {
          "$ref": "#/definitions/booking"
      },
-     "title": "booking_hierarchy",
+     "title": "booking_minimal_hierarchy",
      "description": "all booking details",
      "db_mapping": {
          "db_schema": "postgres_air",
