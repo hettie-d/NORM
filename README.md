@@ -61,5 +61,5 @@ we can then use generate_search_generic to generate and execute dynamic SQL that
 
 Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder. These examples are based on the Postgres_ari database, however, neither Postgres_air database is a part of NORM nor NORm is a part of Postgres_air. 
 
-For details, consult the [User Guide](documentation/norm-ug.html) 
+For details, consult the [User Guide](documentation/norm-ug.pdf) 
 
