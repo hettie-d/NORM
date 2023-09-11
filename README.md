@@ -59,6 +59,7 @@ Both sets should be compiled into the database for each hierarchy.
 
 we can then use generate_search_generic to generate and execute dynamic SQL that extracts data satisfying the search conditions. Alternatively, lower-level functions build_select  and build_conditions create parts of SQL statements that can be used to had-craft more complex queries. 
 
+Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder. These examples are based on the Postgres_ari database, however, neither Postgres_air database is a part of NORM nor NORm is a part of Postgres_air. 
+
 For details, consult the [User Guide](documentation/norm-ug.html) 
 
-Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder.
