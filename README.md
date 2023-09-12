@@ -29,7 +29,7 @@ To use NORM, run the file
 
 \_load\_all.sql from the sql directory on your local Postgres database
 
-It will create a NORM_GEN schema with metadata tables and deploy the following packages:
+It will create a NORM schema with metadata tables and deploy the following packages:
 
 process_schema
 
@@ -52,14 +52,14 @@ In addition, it will create a function ts_all which runs all functions from the 
 
 After that, we are ready to generate all PostgeSQL functions which will be called from the application. Specifically, we need:
 
--  a set of functions performing data modification, and
+- a set of functions performing data modification, and
 - a set of PostgreSQL type definitions.
 
-Both sets should be compiled into the database for each hierarchy.
+Both sets should be created in the database for each hierarchy.
 
-we can then use generate_search_generic to generate and execute dynamic SQL that extracts data satisfying the search conditions. Alternatively, lower-level functions build_select  and build_conditions create parts of SQL statements that can be used to had-craft more complex queries. 
+When this is done, you can use generate_search_generic function to generate and execute dynamic SQL that extracts data based on the search conditions. Alternatively, lower-level functions build_select  and build_conditions create parts of SQL statements that can be used to handcraft more complex queries. 
 
-Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder. These examples are based on the Postgres_ari database, however, neither Postgres_air database is a part of NORM nor NORm is a part of Postgres_air. 
+Examples of json schemas and funcitons generators can be found in the [Examples](examples) folder. These examples are based on the Postgres_air database, however, neither Postgres_air database is a part of NORM nor NORM is a part of Postgres_air. 
 
 For details, consult the [User Guide](documentation/norm-ug.pdf) 
 
