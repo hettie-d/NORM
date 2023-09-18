@@ -4,10 +4,10 @@
          "$ref": "#/definitions/booking"
      },
      "title": "booking_minimal_hierarchy",
-     "description": "all booking details",
+     "description": "minimal set of booking attributes",
      "db_mapping": {
          "db_schema": "postgres_air",
-         "db_prefix":"bh",
+         "db_prefix":"bmh",
          "norm_schema":"norm"
      },
      "definitions": {

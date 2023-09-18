@@ -4,7 +4,7 @@
          "$ref": "#/definitions/booking"
      },
      "title": "booking_extended_hierarchy",
-     "description": "all booking details",
+     "description": "all booking details and scalar expressions",
      "db_mapping": {
          "db_schema": "postgres_air",
          "db_prefix":"bkng",
