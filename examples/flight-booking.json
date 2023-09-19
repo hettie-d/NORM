@@ -6,7 +6,7 @@
          "$ref": "#/definitions/flight"
                },
      "db_mapping":{
-     	   "db_schema":"postgres_air"
+     	   "db_schema":"postgres_air",
          "db_prefix":"flbkng",
          "norm_schema":"norm"
      	            },
