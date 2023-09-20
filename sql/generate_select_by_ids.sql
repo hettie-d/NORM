@@ -6,7 +6,6 @@ declare
 v_func text;
 v_name text;
 begin
-execute norm_gen.generate_types(p_schema_name);
 select 
 format( $fmt$create or replace function %1$s.%2$s_select_by_ids (
    p_ids %3$s [] ) returns  %1$s.%2$s_%4$s []

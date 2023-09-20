@@ -59,6 +59,11 @@ $$)  rst;
 
 --- Compile generated code to the database --
 --- The following statement generates the same code as above and run it to create type definitions and functions
+
+select 
+   norm_gen.create_generated_types(transfer_schema_name)
+from transfer_schema;
+
 select 
    transfer_schema_name,
    norm_gen.generate_to_db_function(transfer_schema_name) to_db,
