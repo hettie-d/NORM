@@ -62,7 +62,8 @@ $$)  rst;
 select 
    transfer_schema_name,
    norm_gen.generate_to_db_function(transfer_schema_name) to_db,
-   norm_gen.generate_select_by_id(transfer_schema_name) select_by_ids
+   norm_gen.generate_select_by_id(transfer_schema_name) select_by_ids,
+   norm_gen.generate_from_db(transfer_schema_name) from_db
 from transfer_schema;
 
 /* Execute just generated function and 
@@ -75,7 +76,22 @@ norm.bmh_select_by_ids(
 limit 2) )
 )));
 
----- SEARCH CONDITIONS
+/*.  Get data from DB with condition in JSON */
+select  jsonb_pretty(to_jsonb(
+norm.bmh_from_db(
+$$
+{
+"booking_minimal_hierarchy":{
+"departure_airport_code":"ORD",
+"arrival_city":{"$like":"NEW Y%"},
+"last_name":"Smith"}
+}
+$$::json)
+));
+
+
+
+---- MORE EXAMPLES OF SEARCH CONDITIONS
 /* The following examples return generated code as psql output. 
 These code frabments can be appended to appropriate SELECT-FROM 
 clauses generated above.
