@@ -61,9 +61,19 @@ $$)  rst;
 --- The following statement generates the same code as above and run it to create type definitions and functions
 select 
    transfer_schema_name,
-   norm_gen.generate_to_db_function(transfer_schema_name) function_name
+   norm_gen.generate_to_db_function(transfer_schema_name) to_db,
+   norm_gen.generate_select_by_id(transfer_schema_name) select_by_ids
 from transfer_schema;
 
+/* Execute just generated function and 
+extract pretty JSON for 2 bookings
+*/
+select  jsonb_pretty(to_jsonb(
+norm.bmh_select_by_ids(
+(select array_agg(booking_id) from
+(select booking_id from postgres_air.booking b 
+limit 2) )
+)));
 
 ---- SEARCH CONDITIONS
 /* The following examples return generated code as psql output. 
