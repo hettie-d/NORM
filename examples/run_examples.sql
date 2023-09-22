@@ -1,7 +1,6 @@
 /*
  This file contains psql input that can be used to compile example schemas and generate database type definitions and functions
 */
-\cd  /Users/boris/Locally/WORKING/2023-NORM/NORM/examples
 --- cd to the directory containing JSON schemas
 \cd <your  directory containing JSON schemas>
 
@@ -84,8 +83,7 @@ limit 2) )
 /*.  Get data from DB with condition in JSON */
 select  jsonb_pretty(to_jsonb(
 norm.bmh_from_db(
-$$
-{
+$${
 "booking_minimal_hierarchy":{
 "departure_airport_code":"ORD",
 "arrival_city":{"$like":"NEW Y%"},
@@ -93,6 +91,13 @@ $$
 }
 $$::json)
 ));
+
+
+/* Insert-update-delete: all in the same function call */
+\set  p_update_request `cat update_request.json`
+begin transaction;
+select  norm.bmh_to_db (:'p_update_request'::JSON);
+rollback;
 
 
 

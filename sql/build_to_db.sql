@@ -94,12 +94,12 @@ select
   t_object,
   (select max(level) from tree_node tr
   where tr.t_object = tn.t_object) as level,
-   format($format$drop type if exists %3$s.%1$s_record_in cascade;
-create type %3$s.%1$s_record_in as(
+   format($format$drop type if exists %3$s.%4$s_%1$s_record_in cascade;
+create type %3$s.%4$s_%1$s_record_in as(
      %2$s,
     cmd text);
    $format$, 
-       tn.db_prefix || $$_$$ || tn.t_object, ---1
+       tn.t_object, ---1
    (select  string_agg (key_type_def, $$,
    $$)
    from (select  
@@ -116,7 +116,8 @@ create type %3$s.%1$s_record_in as(
       and tk.db_expression = 'N'
    order by key_position) kt
    ),  ---2
-   tn.norm_schema --3
+   tn.norm_schema, --3
+   tn.db_prefix --- 4
   ) as type_in_def
 from ts_object  tn
 where tn.t_object in (select t_object from tree_node)
@@ -133,12 +134,13 @@ from types_in
 w_array_type as (
 select string_agg(
 format ($format$
-drop type if exists %2$s.%3$s_rec_in_array cascade;
-create type %2$s.%3$s_rec_in_array as(
-    %3$s %2$s.%1$s_record_in [] ); $format$,
-    db_prefix || $$_$$ || t_object, ---1
+drop type if exists %2$s.%4$s_%3$s_rec_in_array cascade;
+create type %2$s.%4$s_%3$s_rec_in_array as(
+    %3$s %2$s.%4$s_%1$s_record_in [] ); $format$,
+    t_object, ---1
     norm_schema, ---2
-    db_prefix || $$_$$ || node ---3
+    node, ---3
+    db_prefix ---4
     ), $$
 $$)  arr_types
 from tree_node
@@ -200,10 +202,11 @@ $prefix$,
 func_h_delete_drop as (
 select string_agg(del_cte_d, $$ $$) as func_def
 from (select   format($format$
-drop  function  if exists %1$s.%2$s_delete;
+drop  function  if exists %1$s.%2$s_%3$s_delete;
    $format$,
      tn.norm_schema,    ---1
-     tn.db_prefix || $$_$$ || tn.node ---2
+     tn.db_prefix, ---2
+     tn.node ---2
    ) del_cte_d
 from tree_node tn
 order by level asc, t_object) dcte 
@@ -212,14 +215,18 @@ order by level asc, t_object) dcte
 func_h_delete as (
 select string_agg(del_cte, $$ $$) as func_def
 from (select   format($format$
-create or replace function %1$s.%2$s_delete (
+create or replace function %1$s.%10$s_%2$s_delete (
    ids_in %3$s[]) returns %3$s[]
+RETURNS NULL ON NULL INPUT
   language plpgsql
   as
 $funcbody$
 declare
 v_ret  %3$s[];
 begin
+-----TRACING ---
+raise debug $rs$ Entering %10$s_%2$s_delete %% $rs$,
+   jsonb_pretty(to_jsonb(ids_in));
 ---    invoke h_delete for all child nodes
 %4$s
 ---   actual delete statement for current node
@@ -234,12 +241,12 @@ select array_agg(p_id) into v_ret from del_stmt;
 $funcbody$;
  $format$,
      tn.norm_schema,    ---1
-     tn.db_prefix || $$_$$ || tn.node, ---2
+     tn.node, ---2
    (select     tk.db_type_calc
    from ts_object_key tk
    where tk.t_object = tn.t_object
    and db_col = tn.db_pk_col
-   ), ---3
+   ), ---3 -- parameter type
    (select string_agg(ch_del, $$ $$) from (
       select format ($chfmt$
   perform %1$s.%7$s_%2$s_delete (
@@ -264,7 +271,8 @@ $funcbody$;
    from ts_object_key tk
    where tk.t_object = tn.t_object
    and tn.db_pk_col = tk.db_col), ---8
-   tn.db_parent_fk_col ---9
+   tn.db_parent_fk_col, ---9
+   tn.db_prefix --- 10
    ) del_cte
 from tree_node tn
 order by level desc, t_object) dcte 
@@ -289,10 +297,11 @@ group by tk. t_object
 func_h_insert_drop as (
 select string_agg(ins_d, $$ $$) as func_ins_d
 from (select   format($format$
-drop function if exists %1$s.%2$s_insert;
+drop function if exists %1$s.%2$s_%3$s_insert;
    $format$,
      tn.norm_schema,    ---1
-     tn.db_prefix || $$_$$ || tn.node) ---2
+     tn.db_prefix, ---2 
+     tn.node) ---3
      as ins_d
 from tree_node tn
 order by level asc, t_object) inse 
@@ -320,7 +329,7 @@ insert_child_nodes as (
        ); --- perform 
       $chfmt$,
       tn.norm_schema, ---ch-1
-      tn.db_prefix || $$>$$ || ch.node,    ---ch-2
+      tn.db_prefix || $$_$$ || ch.node,    ---ch-2
       ch.db_pk_col, ---ch 3
       ch.db_schema, ---ch 4
       ch.db_table, ---ch 5
@@ -337,7 +346,7 @@ group by pnode
 func_insert_ch_parameter as (
 select tn.node as pnode,ch.node as cnode,
       format ($chfmt$
-create or replace function %1$s.%2$s_insert_param (
+create or replace function %1$s.%7$s_%2$s_insert_param (
    pnt_in  %5$s[ ],
    rows_in %1$s.%7$s_%3$s_rec_in_array_pnt[]) 
    returns  %1$s.%7$s_%2$s_rec_in_array_pnt[]
@@ -406,15 +415,19 @@ from func_insert_ch_parameter
 func_h_insert as (
 select string_agg(ins_f, $$ $$) as func_def
 from (select   format($format$
-create or replace function %1$s.%2$s_insert (
-   rows_in %1$s.%2$s_rec_in_array_pnt[]) 
+create or replace function %1$s.%13$s_%2$s_insert (
+   rows_in %1$s.%13$s_%2$s_rec_in_array_pnt[]) 
    returns %3$s[]
+RETURNS NULL ON NULL INPUT
   language plpgsql
   as
 $funcbody$
 declare
 v_ret %3$s[ ];
 begin
+-----TRACING ---
+raise debug $rs$ Entering %1$s.%13$s_%2$s_insert %% $rs$,
+   jsonb_pretty(to_jsonb(rows_in));
 --- insert stmt for current node
 with
 insert_stmt as (
@@ -436,7 +449,7 @@ from  insert_stmt;
    $funcbody$;
    $format$,
      tn.norm_schema,    ---1
-     tn.db_prefix || $$_$$ || tn.node, ---2
+     tn.node, ---2
    (select     tk.db_type_calc
    from ts_object_key tk
    where tk.t_object = tn.t_object
@@ -458,7 +471,8 @@ from  insert_stmt;
   from insertable_columns ic
   where ic.t_object = tn.t_object), ---10
   tn.db_pk_col, ---11
-  tn.db_parent_fk_col ---12
+  tn.db_parent_fk_col, ---12
+  tn.db_prefix ---13
    ) ins_f
 from tree_node tn
 order by level desc, t_object) inse 
@@ -467,10 +481,11 @@ order by level desc, t_object) inse
 func_h_update_drop as (
 select string_agg(upd_d, $$ $$) as func_upd_d
 from (select   format($format$
-drop function if exists %1$s.%2$s_update;
+drop function if exists %1$s.%3$s_%2$s_update;
    $format$,
      tn.norm_schema,    ---1
-     tn.db_prefix || $$_$$ || tn.node) ---2
+     tn.node, ---2
+     tn.db_prefix) ---3
      as upd_d
 from tree_node tn
 order by level asc, t_object) inse 
@@ -481,10 +496,10 @@ update_child_nodes as (
      string_agg(ch_upd, $$ $$) as ch_upd
  from (
       select tn.node as pnode,
-      format ($chfmt$  perform %1$s.%2$s_update (
+      format ($chfmt$  perform %1$s.%5$s_%2$s_update (
        (select  array_agg(ch_objects) from (
         select 
-         row(  ch_in.%3$s , ch_in. %2$s)::%1$s.%2$s_rec_in_array_pnt
+         row(  ch_in.%3$s , ch_in. %2$s)::%1$s.%5$s_%2$s_rec_in_array_pnt
             as ch_objects  
        from     unnest ( rows_in) rf,
            unnest (rf.%4$s) ch_in ) flat
@@ -492,12 +507,13 @@ update_child_nodes as (
        ); --- perform 
       $chfmt$,
       tn.norm_schema, ---ch-1
-      tn.db_prefix || $$_$$ || ch.node,    ---ch-2
+      ch.node,    ---ch-2
       (select tk.t_key_name
    from ts_object_key tk
    where tk.t_object = tn.t_object
    and tn.db_pk_col = tk.db_col), --3
-   ch.parent_node ---4
+   ch.parent_node, ---4
+   tn.db_prefix  --- 5
       ) as ch_upd
 from  tree_node tn
     join tree_node ch 
@@ -545,9 +561,10 @@ from tree_node tn
 func_h_update as (
 select string_agg(upd_f, $$ $$) as func_def
 from (select   format($format$
-create or replace function %1$s.%2$s_update (
-   rows_in %1$s.%2$s_rec_in_array_pnt[]) 
+create or replace function %1$s.%9$s_%2$s_update (
+   rows_in %1$s.%9$s_%2$s_rec_in_array_pnt[]) 
    returns %3$s[]
+RETURNS NULL ON NULL INPUT
   language plpgsql
   as
 $funcbody$
@@ -557,26 +574,28 @@ v_ins %3$s[ ];
 v_del %3$s[ ];
 v_upd %3$s[ ];
 begin
---- update stmt for current node
-%5$s
-%4$s
----  invoke delete for current level
-select  %1$s.h_%2$s_delete (
-(select array_agg(o_in.%6$s) 
-from unnest (rows_in) r_in, unnest (r_in.%2$s) o_in
-where lower(o_in.cmd)=$$delete$$)
- ) into v_del;
+raise debug $rs$ Entering %1$s.%9$s_%2$s_update %% $rs$,
+   jsonb_pretty(to_jsonb(rows_in));
 --- invoke insert for current level
-select  %1$s.h_%2$s_insert(
+select  %1$s.%9$s_%2$s_insert(
 (select  array_agg(pnt_a) from (
 select   row(p, array_agg(row(
    %7$s, 
    NULL --- cmd
-   )::%1$s.%8$s_record_in))::%1$s.%2$s_rec_in_array_pnt   as pnt_a
+   )::%1$s.%9$s_%8$s_record_in))::%1$s.%9$s_%2$s_rec_in_array_pnt   as pnt_a
 from unnest (rows_in) r_in(p,%2$s), unnest (r_in.%2$s) o_in
 where %6$s is null
 group by p) p_ins)
 ) into v_ins;
+--- update stmt for current node
+%5$s
+%4$s
+---  invoke delete for current level
+select  %1$s.%9$s_%2$s_delete (
+(select array_agg(o_in.%6$s) 
+from unnest (rows_in) r_in, unnest (r_in.%2$s) o_in
+where lower(o_in.cmd)=$$delete$$)
+ ) into v_del;
  select array_agg(id) into v_ret from (
  select distinct id from unnest(v_upd || v_ins || v_del) r(id)) d; ---  %3$s
    return v_ret;
@@ -584,7 +603,7 @@ group by p) p_ins)
    $funcbody$;
    $format$,
      tn.norm_schema, ---1
-     tn.db_prefix || $$_$$ || tn.node, ---2
+     tn.node, ---2
    (select     tk.db_type_calc
    from ts_object_key tk
    where tk.t_object = tn.t_object
@@ -607,7 +626,8 @@ group by p) p_ins)
    where tk.t_object = tn.t_object
       and tk.db_expression = 'N'
    order by key_position) kt), ---7  --- list of keys
-   tn.t_object ---8
+   tn.t_object, ---8
+   tn.db_prefix  --- 9
    ) upd_f
 from tree_node tn
 order by level desc, t_object) upde 
