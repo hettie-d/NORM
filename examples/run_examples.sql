@@ -21,48 +21,21 @@ select ts_all(:'p_schema'::json);
 \set  p_schema `cat timetable_hierarchy.json`
 select ts_all(:'p_schema'::json);
 
+---- Check that schemas are processed correctly. This is not an exaustive check.
 select transfer_schema_name, db_schema, db_prefix, norm_schema from transfer_schema;
 
-/* Generated code will be placed into 'generated' sub-directory of examples directory.
-Run something like 'mkdir generated' to make sure this sub-directory exists 
-or modify  '\out' commands below to place it somewhere else 
+/* All schemas in the examples firectory specify that NORM types and functions should be placed in the norm schema.
 */
-\pset tuples_only on
-\out  generated/outgoung_types.sql
-select 
-regexp_split_to_table(
-(select string_agg(
-norm_gen.generate_types(transfer_schema_name), $$
-$$) from transfer_schema)
-,   $$
-$$)  rst;
----  generate 'select full hierarchy'
-\out generated/select_from.sql
-select 
-regexp_split_to_table(
-  (select string_agg(
-norm_gen.nested_root(transfer_schema_name), $$
-$$) from transfer_schema)
-,   $$
-$$)  rst;
------ GENERATE TO_DB ----
-\out generated/to_db.sql
-select 
-regexp_split_to_table(
-(select string_agg(
-norm_gen.build_to_db(transfer_schema_name), $$
-$$) from transfer_schema),   $$
-$$)  rst;
-\out
-\pset tuples_only off
+drop schema if exists norm cascade;
+create schema norm;
 
 --- Compile generated code to the database --
---- The following statement generates the same code as above and run it to create type definitions and functions
-
+--- generate type definitions for SELECT clause
 select 
    norm_gen.create_generated_types(transfer_schema_name)
 from transfer_schema;
 
+--- Generate NORM functions 
 select 
    transfer_schema_name,
    norm_gen.generate_to_db_function(transfer_schema_name) to_db,
@@ -91,7 +64,6 @@ $${
 }
 $$::json)
 ));
-
 
 /* Insert-update-delete: all in the same function call */
 \set  p_update_request `cat update_request.json`
@@ -165,6 +137,42 @@ select  build_conditions($$
 }}
 $$::json);
 
----  Generate database objects directly to the database 
+/* 
+The remaining part of this script generates the same code but stores it in files 
+instead of direct compilation into the database. These files are not used in this 
+schript but may be useful for manual examination or manual creation of more 
+complex search. 
 
+Generated code will be placed into 'generated' sub-directory of examples directory.
+Run something like 'mkdir generated' to make sure this sub-directory exists 
+or modify  '\out' commands below to place it somewhere else 
+*/
+\pset tuples_only on
+\out  generated/outgoung_types.sql
+select 
+regexp_split_to_table(
+(select string_agg(
+norm_gen.generate_types(transfer_schema_name), $$
+$$) from transfer_schema)
+,   $$
+$$)  rst;
+---  generate 'select full hierarchy'
+\out generated/select_from.sql
+select 
+regexp_split_to_table(
+  (select string_agg(
+norm_gen.nested_root(transfer_schema_name), $$
+$$) from transfer_schema)
+,   $$
+$$)  rst;
+----- GENERATE TO_DB ----
+\out generated/to_db.sql
+select 
+regexp_split_to_table(
+(select string_agg(
+norm_gen.build_to_db(transfer_schema_name), $$
+$$) from transfer_schema),   $$
+$$)  rst;
+\out
+\pset tuples_only off
 
