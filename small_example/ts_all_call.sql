@@ -8,7 +8,8 @@ select norm_gen.ts_all (
 	              "$ref": "#/definitions/account"
                  },
      "db_mapping":{
-     	   "db_schema":"norm"
+     	   "db_schema":"norm",
+     	   "db_prefix":"small"
      	            },
      "definitions": {
          "account":{
