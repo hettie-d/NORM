@@ -109,8 +109,8 @@ where transfer_schema_id = p_schema_id)
         as nested_object;
 $body$;
 
-drop function if exists norm_gen.nested_root;
-create or replace function norm_gen.nested_root(
+drop function if exists norm_gen.build_nested_select_clause;
+create or replace function norm_gen.build_nested_select_clause(
    p_hierarchy text) returns text
    language SQL as
    $body$
@@ -127,3 +127,12 @@ create or replace function norm_gen.nested_root(
        and tso.t_object = s.transfer_schema_root_object
    where s.transfer_schema_name = p_hierarchy;
    $body$;
+   
+drop function if exists norm_gen.nested_root;
+create or replace function norm_gen.nested_root(
+   p_hierarchy text) returns text
+   language SQL as
+$body$
+select build_nested_select_clause(p_hierarchy);
+$body$;
+

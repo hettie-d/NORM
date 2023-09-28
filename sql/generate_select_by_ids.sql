@@ -26,7 +26,7 @@ s.norm_schema, --1
 s.db_prefix,  --2
 k.db_type_calc,  ---3
 o.db_record_type,  ---4
-quote_literal(norm_gen.nested_root(s.transfer_schema_name)),  --- 5
+quote_literal(norm_gen.build_nested_select_clause(s.transfer_schema_name)),  --- 5
 k.db_col  -- 6
 ),
 s.norm_schema ||$$.$$ || s.db_prefix || $$_select_by_ids$$

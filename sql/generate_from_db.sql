@@ -30,7 +30,7 @@ s.norm_schema, --1
 s.db_prefix,  --2
 quote_literal(p_schema_name),  ---3
 o.db_record_type,  ---4
-quote_literal(norm_gen.nested_root(s.transfer_schema_name))  --- 5
+quote_literal(norm_gen.build_nested_select_clause(s.transfer_schema_name))  --- 5
 ),
 s.norm_schema ||$$.$$ || s.db_prefix || $$_from_db$$
 into v_func, v_name
