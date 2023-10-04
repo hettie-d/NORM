@@ -17,7 +17,7 @@ The contract between an application and a database is presented in the form of J
  
  ##  TOC:
  
- * The documentation directory contains: NORM user Guide (HTML and pdf format)
+ * The documentation directory contains NORM user Guide in pdf format
  * The presentation directory contains ppt of the  presentation from SOFSEM 2020 conference, where NORM was first officially announced, and a presentation from Swiss PG Day 2022 when the automated funcitons generation was introduced.
  * The sql directory contains a source code for the generator
  * The examples directory contains examples of JSON schemas which can be used as input for NORM. All schemas are based on postges_air database and psql script that runs these examples.
