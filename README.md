@@ -46,3 +46,4 @@ The file examples/run_examples.sql demonstrates how to process JSON schemas and 
 
 For details, consult the [User Guide](documentation/norm-ug.pdf) 
 
+Please be advised that [Small example](small_example) is still a work in progress. The intention is to show an example that does not require postgres_air database installation and to demonstrate the differences (and similarities) between manually written and generated functions. 
