@@ -25,14 +25,14 @@ $like  LIKE
 */
 ---example of the call
 --
-select norm.account_search_generic($${
+select acct_from_db($${"user_account":{
 "phone_type":"cell", 
 "email_priority":"primary",
 "account":{"last_name":"johns",
      "emails":{"email_address":{"$like":"%gmail%"}},
      "dob":{"$gt":"1901-01-01"},
      "phones":{"phone_number":{"$like":"312%"}}
-     }
+     }}
 }$$::json);
 ---
 ---The SELECT statement generated during this call"
