@@ -1,4 +1,4 @@
-set search_path to norm;
+set search_path to norm_small,norm_gen;
 
 select * from account_create($${
 "username":"johnsmithaccount",

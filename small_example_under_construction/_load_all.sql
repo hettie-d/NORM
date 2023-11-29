@@ -1,4 +1,3 @@
-\ir create_tables.sql
-\ir initial_data_insert.sql
-\ir array_transport.sql
-\ir account_pkg.sql
+\ir create_and_initialize_tables.sql
+\ir prepare_schema_and_functions.sql
+--\ir account_pkg.sql

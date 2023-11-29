@@ -1,6 +1,10 @@
-drop schema if exists norm cascade;
-create schema norm;
-set search_path to norm;
+--- Change working directory to one where small_example files are located
+--- Modify and uncomment  the following line:
+-- \cd <Your directory containing small example downloaded from github>
+
+drop schema if exists norm_small cascade;
+create schema norm_small;
+set search_path to norm_small,norm_gen;
 
 --
 create table account(
@@ -34,7 +38,6 @@ constraint phone_phone_type_id_fk  foreign key (phone_type_id) references phone_
 constraint phone_account_id_fk  foreign key (account_id) references account(account_id)
 );
 
-
 create table email_priority (
 email_priority_id int,
 email_priority text,
@@ -55,3 +58,26 @@ constraint email_pk primary key(email_id),
 constraint email_email_priority_id_fk  foreign key (email_priority_id) references email_priority (email_priority_id),
 constraint email_account_id_fk  foreign key (account_id) references account(account_id)
 );
+
+--- Load data
+
+insert into account(username, first_name, last_name, dob)
+values ('aliceacct1', 'alice','johns','1996-04-01');
+
+insert into account(username, first_name, last_name, dob)
+values ('bobacct2', 'bob','johnson','1989-04-01');
+
+insert into account(username, first_name, last_name, dob)
+values ('smithalice', 'alice','smith','1998-12-31');
+
+insert into email (account_id, email, email_priority_id)
+values (1, 'alicejons@gmail.com',1);
+
+insert into email(account_id, email, email_priority_id)
+values (2,'johnsonbs@hotmail.com',1);
+
+insert into phone (account_id, phone, phone_type_id)
+values (1, '2021234567',2);
+insert into phone (account_id, phone, phone_type_id)
+values (1, '3121233344',2);
+

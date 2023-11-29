@@ -1,6 +1,6 @@
 ---insert:
 
-select * from norm.account_1_to_db ($$[{
+select * from acct_to_db ($$[{
   "username":"johnsmithaccount",
   "first_name":"john",
   "last_name":"smith",
@@ -10,7 +10,7 @@ select * from norm.account_1_to_db ($$[{
 $$::json)
 
 --update:
-select * from norm.account_1_to_db ($$[{
+select * from acct_to_db ($$[{
    "account_id":1,
    "username":"aliceacct2"}]
  $$::json
@@ -18,7 +18,7 @@ select * from norm.account_1_to_db ($$[{
 
 --update embedded objects:
 
-select * from norm.account_1_to_db($$[{
+select * from acct_to_db($$[{
    "account_id":"3",
    "emails":[{"email":"new.email@hotmail.com", 
                                       "email_priority_id":"1"}]
@@ -27,7 +27,7 @@ select * from norm.account_1_to_db($$[{
 
 --delete:
 
-select * from norm. account_1_to_db($$[{
+select * from acct_to_db($$[{
    "account_id":"1",
    "phones":[{"phone_id":"2", "command":"delete"}]
    }]

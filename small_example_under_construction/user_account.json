@@ -1,17 +1,16 @@
 {    
-     "title": "User account",
+     "title": "user_account",
      "description":"all account details with DB mappings",
      "type": "array",
-     "comment": "Title - the name of the hierarhy, should be unique within the database.
-	      Description - Description of the hierarhy,
-	      type - always array",
+     "comment": "Title - the name of the hierarhy, should be unique within the database. Description - Description of the hierarhy, type - always array",
       "items": {
 	              "$ref": "#/definitions/account",
 	              "comment": "Reference to the node with defenition"
                  },
      "db_mapping":{
-     	   "db_schema":"norm",
-     	   "comment": "Default database schema for all objects in the hierarhy, can be modified on the lower levels"
+     	   "db_schema":"norm_small",
+     	   "db_prefix":"acct",
+     	   "comment": "Default database schema for all objects in the hierarhy, can be modified on the lower levels, db_prefix is used to generate database objects (functions and ty-es) names"
      	            },
      "definitions": {
          "account":{
