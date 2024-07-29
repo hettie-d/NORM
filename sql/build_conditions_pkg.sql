@@ -128,9 +128,11 @@ where node in (
    select parent_node from set_in)
  )
 select
-   case when array_length(cond_arr,1) = 1 then cond_arr
-         else norm_gen.nest_cond (cond_arr)
-         end
+   case 
+       when array_length(c_in,1) = 1 then c_in
+       when array_length(cond_arr,1) = 1 then cond_arr
+       else norm_gen.nest_cond (cond_arr)
+       end
 from
 (select array_agg(
      (path, 
