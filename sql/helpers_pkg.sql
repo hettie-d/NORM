@@ -38,10 +38,10 @@ string_agg($$add column $$||coalesce(tsk.db_col,tsk.t_key_name) ||$$ $$ ||
     $$,
 $$) || $$;
 $$
-from transfer_schema_object tso
-join transfer_schema ts
+from norm_gen.transfer_schema_object tso
+join norm_gen.transfer_schema ts
    on ts.transfer_schema_id = tso.transfer_schema_id
-join transfer_schema_key tsk
+join norm_gen.transfer_schema_key tsk
    on tsk.transfer_schema_object_id = tso.transfer_schema_object_id
    where ts.transfer_schema_name= p_schema_title
    and coalesce(tsk.db_col,tsk.t_key_name) not in (select column_name::text

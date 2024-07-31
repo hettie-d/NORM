@@ -245,7 +245,7 @@ set db_type_calc =(
               select
                   ts.norm_schema||'.' ||ts.db_prefix || $$_$$ ||ob.db_record_type
               from norm_gen.transfer_schema_object ob
-               join transfer_schema ts
+               join norm_gen.transfer_schema ts
                   on ts.transfer_schema_id = ob.transfer_schema_id
               where ob.transfer_schema_object_id=k.ref_object_id
               )
@@ -261,7 +261,7 @@ set db_type_calc =(
                select
                    ts.norm_schema||'.' || ts.db_prefix || $$_$$ ||ob.db_record_type ||'[]'
                from norm_gen.transfer_schema_object ob
-               join transfer_schema ts
+               join norm_gen.transfer_schema ts
                   on ts.transfer_schema_id = ob.transfer_schema_id
                where ob.transfer_schema_object_id=k.ref_object_id
                )
