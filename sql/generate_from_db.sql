@@ -21,7 +21,7 @@ then
    end if;
 v_sql:= %5$s || $where$
 where  $where$||
-build_conditions(p_cond) ;
+norm_gen.build_conditions(p_cond) ;
 execute v_sql into v_result;
 return  v_result;
 end; $BODY$;  
