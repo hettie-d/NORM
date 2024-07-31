@@ -12,3 +12,5 @@ set search_path to norm_gen;
 \ir generate_from_db.sql
 \ir generate_select_by_ids.sql
 \ir generate_to_db_function.sql
+\ir helpers_pkg.sql
+
