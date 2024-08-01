@@ -16,7 +16,7 @@ from   norm_gen.transfer_schema ts
 where transfer_schema_name = p_schema_name;
 return v_func;
 exception when others then 
-return $$--- ERROR ---$$;
+return $$ERROR:$$ || v_sql;
 end;$body$;
 
 

@@ -1,15 +1,15 @@
 create or replace function norm_gen.build_to_db (p_hierarchy text) returns text
-language SQL as
-$generator$
+stable language SQL 
+begin atomic
 with  recursive
 schema_info as (
 select 
-transfer_schema_id as schema_id,
-transfer_schema_name as schema_name,
-transfer_schema_root_object as root_object,
-db_schema,
-db_prefix,
-norm_schema
+   max(transfer_schema_id) as schema_id,
+   coalesce(max(transfer_schema_name), $$?$$) as schema_name,
+   max(transfer_schema_root_object) as root_object,
+   max(db_schema) as db_schema,
+   max(db_prefix) as db_prefix,
+   max(norm_schema) as norm_schema
 from   norm_gen.transfer_schema ts
 where transfer_schema_name = p_hierarchy
  ---  $$booking_hierarchy$$
@@ -676,20 +676,39 @@ from schema_info si
 ---) select * from func_to_db;
 ),
 last_cte as (select $$;$$)
-select 
-(select to_db_d  from func_to_db_drop)  ||
-(select func_upd_d from func_h_update_drop) ||
-(select func_ins_d from func_h_insert_drop) ||
-(select func_def from func_h_delete_drop) ||
- (select in_types from in_type_def) ||
- (select arr_types from w_array_type) ||
- (select arr_types from wp_array_type) ||
-(select func_def from func_parse) ||
-(select func_def from func_h_delete) ||
-(select func_def from func_insert_ch_parameter_all) ||
-(select func_def from func_h_insert) ||
-(select func_def from func_h_update) ||
-(select func_def from func_to_db) 
-;
-$generator$;
+select  case 
+when schema_name = $$?$$ 
+then $$INVALID PARAMETER $$ || p_hierarchy || $$: schema does not exist$$
+else $$/* Generating to_db for $$ || p_hierarchy || $$*/
+$$  ||
+(select coalesce(to_db_d, $$/* Missing drop to_db */
+$$)    from func_to_db_drop)  ||
+(select coalesce(func_upd_d, $$/* Missing drop update */
+$$) from func_h_update_drop) ||
+(select coalesce(func_ins_d, $$/* Missing drop insert */
+$$)  from func_h_insert_drop) ||
+(select coalesce(func_def, $$/* Missing drop delete */
+$$)  from func_h_delete_drop) ||
+ (select coalesce(in_types, $$/* Missing in types */
+ $$)  from in_type_def) ||
+ (select coalesce(arr_types, $$/* Missing array types */
+ $$)  from w_array_type) ||
+ (select coalesce(arr_types, $$/* Missing W types */
+ $$)  from wp_array_type) ||
+(select coalesce(func_def, $$/* Missing parse function */
+$$) from func_parse) ||
+(select coalesce(func_def, $$/* Missing delete functions */
+$$) from func_h_delete) ||
+(select coalesce(func_def, $$/* Missing insert parameter */
+$$) from func_insert_ch_parameter_all) ||
+(select coalesce(func_def, $$/* Missing insert function */
+$$) from func_h_insert) ||
+(select coalesce(func_def, $$/* Missing update function */
+$$) from func_h_update) ||
+(select coalesce(func_def, $$/* Missing to_db function */
+$$) from func_to_db) ||
+(select $$/* The end */$$)
+end
+from schema_info;
+end;
 
