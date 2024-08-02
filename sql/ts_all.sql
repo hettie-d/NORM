@@ -1,5 +1,6 @@
+drop function if exists ts_all;
 create or replace function norm_gen.ts_all (p_schema json)
-returns int
+returns text
 language plpgsql
 as
 $body$
@@ -10,7 +11,9 @@ perform norm_gen.save_schema_object (v_transfer_schema_id);
 perform norm_gen.save_schema_object_key (v_transfer_schema_id);
 perform norm_gen.update_db_type(v_transfer_schema_id);
 --
-return v_transfer_schema_id;
+return 
+   'transfer_schema_id'|| v_transfer_schema_id
+   ;
 end;
 $body$;
 --
