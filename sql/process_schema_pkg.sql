@@ -310,3 +310,101 @@ return query select * from norm_gen.transfer_schema_key
        where transfer_schema_object_id in (select transfer_schema_object_id
       from norm_gen.transfer_schema_object  where transfer_schema_id =p_transfer_schema_id );
 end;$body$;
+
+
+/* 
+Function transfer_schema_xref()  checks references to database objects
+and cross-references in schemas stored internall to NORM. 
+Usage:
+select error_msgs from norm_gen.transfer_schema_xref()
+where transfer_schema_id = 21;
+
+*/
+create or replace function norm_gen.transfer_schema_xref()
+returns table (transfer_schema_id int, error_msgs text)
+stable language sql
+begin atomic
+select 
+   transfer_schema_id,
+   string_agg(err_msg, $$,
+   $$) as error_msgs
+from (
+select distinct  
+transfer_schema_id, 
+$$Schema: $$ || db_schema || $$ does not exist$$ as err_msg
+from norm_gen.transfer_schema_object
+where db_schema not in (
+select schema_name
+from information_schema.schemata)
+union all
+(select distinct  
+transfer_schema_id, 
+$$Table in $$ || t_object ||$$: $$ || db_schema || $$.$$ || db_table || $$ does not exist$$ as err_msg
+from norm_gen.transfer_schema_object
+where db_schema in (
+select schema_name
+from information_schema.schemata)
+and db_expression = 'N'
+and db_table not in (
+select table_name from information_schema.tables
+where table_schema = db_schema))
+---
+union all
+(select distinct  
+transfer_schema_id, 
+$$Column in $$ || tso.t_object ||$$/$$|| tsk.t_key_name ||$$: $$ || db_schema || $$.$$ || tso.db_table ||$$.$$ || tsk.db_col || $$ does not exist$$ as err_msg
+from norm_gen.transfer_schema_object tso
+join transfer_schema_key tsk
+   on tso.transfer_schema_object_id =tsk.transfer_schema_object_id
+where db_schema in (
+select schema_name
+from information_schema.schemata)
+and tsk.db_expression = 'N'
+and tso.db_table in (
+select table_name from information_schema.tables
+where table_schema = tso.db_schema)
+and tsk.t_key_type not in ($$array$$, $$object$$)
+and tsk.db_col not in(
+select column_name 
+from information_schema.columns
+where table_schema = tso.db_schema
+and table_name = tsk.db_table)  )
+union all
+(select 
+   transfer_schema_id,
+   $$Invalid ref to root object:$$ || transfer_schema_root_object
+from transfer_schema ts
+where transfer_schema_root_object not in (
+select t_object 
+from transfer_schema_object tso
+where tso.transfer_schema_id = ts.transfer_schema_id))
+union all
+(select 
+   tso.transfer_schema_id, 
+   $$Invalid link in $$ || tso.t_object || $$/$$ || t_key_name || $$: $$ ||  tsk.ref_object
+from  transfer_schema_key tsk
+join  transfer_schema_object tso
+on tsk.transfer_schema_object_id = tso.transfer_schema_object_id
+where tsk.t_key_type in ($$array$$, $$object$$)
+and tsk.ref_object not in (
+select t_object from transfer_schema_object tsr
+where tsr.transfer_schema_id = tso.transfer_schema_id))
+union all
+(select 
+   tso.transfer_schema_id, 
+   $$Orphan: $$ || tso.t_object
+from transfer_schema_object tso
+where t_object not in (
+select transfer_schema_root_object from transfer_schema ts
+where ts.transfer_schema_id = tso.transfer_schema_id)
+and t_object not in (
+select ref_object 
+from transfer_schema_key tsk
+join transfer_schema_object tsr
+on tsr.transfer_schema_object_id = tsk.transfer_schema_object_id
+where t_key_type in ($$array$$, $$object$$)
+and tsr.transfer_schema_id = tso.transfer_schema_id))
+) msgs
+group by transfer_schema_id
+;
+end;
