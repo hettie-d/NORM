@@ -41,4 +41,6 @@ and o.db_pk_col= k.db_col
 where s.transfer_schema_name=p_schema_name;
 execute v_func;
 return  v_name;
+exception when others then 
+return $$ERROR:$$ || coalesce(v_func, $$Invalid schema name: $$|| p_schema_name);
 end;$body$;
