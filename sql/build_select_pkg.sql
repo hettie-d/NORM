@@ -133,6 +133,6 @@ create or replace function norm_gen.nested_root(
    p_hierarchy text) returns text
    language SQL as
 $body$
-select build_nested_select_clause(p_hierarchy);
+select norm_gen.build_nested_select_clause(p_hierarchy);
 $body$;
 

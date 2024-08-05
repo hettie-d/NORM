@@ -18,7 +18,7 @@ end;
 $block$;
 
 
-create or replace function transfer_schema_alter_table (p_schema_title text)
+create or replace function norm_gen.transfer_schema_alter_table (p_schema_title text)
 returns text
 stable language sql
 begin atomic
@@ -72,7 +72,7 @@ where schema_title like $$sto%$$;
 
 Note that the function will be in-lined. Uncomment explain to see how filtering conditions are pushed down.
 */
-create or replace function transfer_schema_to_table ()
+create or replace function norm_gen.transfer_schema_to_table ()
 returns table (
 schema_title text,
 transfer_object_name text,
@@ -101,10 +101,10 @@ $$
       coalesce(tso.db_table, tso.t_object) || 
 $$_PK primary key $$ || tso.db_pk_col ||
    $$;$$   as pk_constraint
-from transfer_schema_object tso
-join transfer_schema ts
+from norm_gen.transfer_schema_object tso
+join norm_gen.transfer_schema ts
    on ts.transfer_schema_id = tso.transfer_schema_id
-join transfer_schema_key tsk
+join norm_gen.transfer_schema_key tsk
    on tsk.transfer_schema_object_id = tso.transfer_schema_object_id
  group by 
     ts.transfer_schema_name,
@@ -126,7 +126,7 @@ select jsonb_pretty(
        )::jsonb);
  
 */ 
-create or replace function table_to_transfer_schema (
+create or replace function norm_gen.table_to_transfer_schema (
    db_schema text,
    db_table text,
    transfer_schema_title text default null)

@@ -354,7 +354,7 @@ union all
 transfer_schema_id, 
 $$Column in $$ || tso.t_object ||$$/$$|| tsk.t_key_name ||$$: $$ || db_schema || $$.$$ || tso.db_table ||$$.$$ || tsk.db_col || $$ does not exist$$ as err_msg
 from norm_gen.transfer_schema_object tso
-join transfer_schema_key tsk
+join norm_gen.transfer_schema_key tsk
    on tso.transfer_schema_object_id =tsk.transfer_schema_object_id
 where db_schema in (
 select schema_name
@@ -373,34 +373,34 @@ union all
 (select 
    transfer_schema_id,
    $$Invalid ref to root object:$$ || transfer_schema_root_object
-from transfer_schema ts
+from norm_gen.transfer_schema ts
 where transfer_schema_root_object not in (
 select t_object 
-from transfer_schema_object tso
+from norm_gen.transfer_schema_object tso
 where tso.transfer_schema_id = ts.transfer_schema_id))
 union all
 (select 
    tso.transfer_schema_id, 
    $$Invalid link in $$ || tso.t_object || $$/$$ || t_key_name || $$: $$ ||  tsk.ref_object
-from  transfer_schema_key tsk
-join  transfer_schema_object tso
+from  norm_gen.transfer_schema_key tsk
+join  norm_gen.transfer_schema_object tso
 on tsk.transfer_schema_object_id = tso.transfer_schema_object_id
 where tsk.t_key_type in ($$array$$, $$object$$)
 and tsk.ref_object not in (
-select t_object from transfer_schema_object tsr
+select t_object from norm_gen.transfer_schema_object tsr
 where tsr.transfer_schema_id = tso.transfer_schema_id))
 union all
 (select 
    tso.transfer_schema_id, 
    $$Orphan: $$ || tso.t_object
-from transfer_schema_object tso
+from norm_gen.transfer_schema_object tso
 where t_object not in (
-select transfer_schema_root_object from transfer_schema ts
+select transfer_schema_root_object from norm_gen.transfer_schema ts
 where ts.transfer_schema_id = tso.transfer_schema_id)
 and t_object not in (
 select ref_object 
-from transfer_schema_key tsk
-join transfer_schema_object tsr
+from norm_gen.transfer_schema_key tsk
+join norm_gen.transfer_schema_object tsr
 on tsr.transfer_schema_object_id = tsk.transfer_schema_object_id
 where t_key_type in ($$array$$, $$object$$)
 and tsr.transfer_schema_id = tso.transfer_schema_id))
