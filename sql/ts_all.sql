@@ -12,7 +12,7 @@ perform norm_gen.save_schema_object_key (v_transfer_schema_id);
 perform norm_gen.update_db_type(v_transfer_schema_id);
 --
 return 
-   'transfer_schema_id'|| v_transfer_schema_id ||$$
+   'transfer_schema_id:'|| v_transfer_schema_id ||$$
    $$ ||
    (select coalesce(max(error_msgs), $$ $$) from norm_gen.transfer_schema_xref()
 where transfer_schema_id = v_transfer_schema_id)
