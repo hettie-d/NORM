@@ -14,9 +14,10 @@ v_schema_message text;
 begin 
 select norm_gen.transfer_schema_alter_table (p_schema_title) into v_sql;
 execute v_sql;
+/*
 select norm_gen.ts_all(definitions) from norm_gen.transfer_schema where transfer_schema_name=p_schema_title into v_schema_message;
-return v_sql||'
-'|| v_schema_message;
+*/
+return v_sql:
 end;
 $block$;
 
