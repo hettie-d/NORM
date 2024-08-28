@@ -17,7 +17,7 @@ execute v_sql;
 /*
 select norm_gen.ts_all(definitions) from norm_gen.transfer_schema where transfer_schema_name=p_schema_title into v_schema_message;
 */
-return v_sql:
+return v_sql;
 end;
 $block$;
 
