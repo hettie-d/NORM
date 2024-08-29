@@ -1,5 +1,4 @@
-drop schema if exists norm_gen cascade;
-create schema norm_gen;
+create schema if not exists norm_gen;
 set search_path to norm_gen;
 \ir create_norm_gen_tables.sql;
 \ir process_schema_pkg.sql
