@@ -1,8 +1,22 @@
----this package contains functions which can be used by app devs for automated generation of the initial db mappinga and/or for mapping transfer
+---This package contains functions which can be used by app devs for automated generation of the initial db mappinga and/or for mapping transfer
 ---schema changes back to db.
 ---These helpers cover only the most basinc cases, and it's intentional, 
 ---since we believe that more complicated mapping and database design should be done in the database
 ---
+/*
+Functions in this file generate table definitions from a transfer schema or vice versa. The quality of output in both cases is very poor (as typically happens with ORM automations). Therefore, the output must be either tailored manyally or used as is in extremely simple cases for rapid prototyping.
+*/
+
+/* Create table definition from transfer schema 
+By default, table definitions are generated for all tables referenced in all compiled schemas. The  returned columns can be used to filter needed schemas or required schema and/or object. 
+Usage example:
+-- explain
+select pk_constraint 
+from   transfer_schema_to_table()
+where schema_title like $$sto%$$;    
+
+Note that the function will be in-lined. Uncomment explain to see how filtering conditions are pushed down.
+*/
 
 create or replace function norm_gen.transfer_schema_alter_table_exec (p_schema_title text)
 returns text
@@ -62,20 +76,54 @@ join norm_gen.transfer_schema_key tsk
  ;
 end;
 
-/*
-Functions in this file generate table definitions from a transfer schema or vice versa. The quality of output in both cases is very poor (as typically happens with ORM automations). Therefore, the output must be either tailored manyally or used as is in extremely simple cases for rapid prototyping.
-*/
+create or replace function norm_gen.transfer_schema_drop_column_exec (p_schema_title text)
+returns text
+language plpgsql
+as
+$block$
+declare v_sql text;
+v_schema_message text;
+begin 
+select norm_gen.transfer_schema_drop_column(p_schema_title) into v_sql;
+execute v_sql;
+return v_sql;
+end;
+$block$;
 
-/* Create table definition from transfer schema 
-By default, table definitions are generated for all tables referenced in all compiled schemas. The  returned columns can be used to filter needed schemas or required schema and/or object. 
-Usage example:
--- explain
-select pk_constraint 
-from   transfer_schema_to_table()
-where schema_title like $$sto%$$;    
 
-Note that the function will be in-lined. Uncomment explain to see how filtering conditions are pushed down.
-*/
+create or replace function norm_gen.transfer_schema_drop_column(p_schema_title text)
+returns text
+stable language sql
+begin atomic
+select   $$alter table $$ ||
+table_schema::text ||$$.$$ || table_name::text || 
+$$ $$ ||
+string_agg($$drop column $$||column_name::text,
+    $$,$$) || $$;
+$$
+from
+(select * from information_schema.columns
+   where table_schema::text = (select db_schema
+   from  norm_gen.transfer_schema where transfer_schema_name=p_schema_title )
+    and table_name::text in (select coalesce(tso1.db_table, tso1.t_object)
+	  from norm_gen.transfer_schema_object tso1
+       join norm_gen.transfer_schema ts1
+       on ts1.transfer_schema_id = tso1.transfer_schema_id
+	   where ts1.transfer_schema_name=p_schema_title )
+	  ) i
+join norm_gen.transfer_schema ts on ts.db_schema=i.table_schema
+join norm_gen.transfer_schema_object tso 
+   on ts.transfer_schema_id = tso.transfer_schema_id
+   and ts.transfer_schema_name=p_schema_title 
+left outer join norm_gen.transfer_schema_key tsk
+   on tsk.transfer_schema_object_id = tso.transfer_schema_object_id
+  and  coalesce(tsk.db_col,tsk.t_key_name) =column_name::text
+--
+   where coalesce(tsk.db_col,tsk.t_key_name) is null
+   group by table_schema, table_name;
+  end; 
+
+
 create or replace function norm_gen.transfer_schema_to_table ()
 returns table (
 schema_title text,
