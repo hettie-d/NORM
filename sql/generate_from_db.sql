@@ -19,9 +19,11 @@ if  (select key from json_each(p_cond) k) <> %3$s
 then
    raise exception $$Schema name in the condition should be %% $$, %3$s;
    end if;
+--- apply the conditions to the root table alone, so that column names
+--- cannot be confused with columns of the embedded tables
 v_sql:= %5$s || $where$
-where  $where$||
-norm_gen.build_conditions(p_cond) ;
+where top.%6$s in (select %6$s from %7$s where $where$||
+norm_gen.build_conditions(p_cond) || $where$)$where$;
 execute v_sql into v_result;
 return  v_result;
 end; $BODY$;  
@@ -30,7 +32,9 @@ s.norm_schema, --1
 s.db_prefix,  --2
 quote_literal(p_schema_name),  ---3
 o.db_record_type,  ---4
-quote_literal(norm_gen.build_nested_select_clause(s.transfer_schema_name))  --- 5
+quote_literal(norm_gen.build_nested_select_clause(s.transfer_schema_name)),  --- 5
+k.db_col,  --- 6
+o.db_schema || $$.$$ || o.db_table  --- 7
 ),
 s.norm_schema ||$$.$$ || s.db_prefix || $$_from_db$$
 into v_func, v_name
