@@ -16,9 +16,8 @@ v_result  %1$s.%2$s_%4$s [];
 v_sql text;
 begin
 v_sql:= %5$s || $where$
-where %6$s  in( $where$||
-array_to_string(p_ids,$c$,$c$) || $p$) $p$;
-execute v_sql into v_result;
+where %6$s = any($1) $where$;
+execute v_sql into v_result using p_ids;
 return  v_result;
 end; $BODY$;  
 $fmt$,
