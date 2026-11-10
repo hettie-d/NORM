@@ -502,7 +502,10 @@ update_child_nodes as (
          row(  ch_in.%3$s , ch_in. %2$s)::%1$s.%5$s_%2$s_rec_in_array_pnt
             as ch_objects  
        from     unnest ( rows_in) rf,
-           unnest (rf.%4$s) ch_in ) flat
+           unnest (rf.%4$s) ch_in
+       --- skip new parents: their children were already inserted
+       --- by the parent's insert function
+       where ch_in.%3$s is not null ) flat
        ) --- parameter
        ); --- perform 
       $chfmt$,
