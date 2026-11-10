@@ -22,6 +22,7 @@ The contract between an application and a database is presented in the form of J
  * The sql directory contains a source code for the generator
  * The examples directory contains examples of JSON schemas which can be used as input for NORM. All schemas are based on postges_air database and psql script that runs these examples.
  * small-example directory contains an example which was used in the earlie NOM presentations. It uses tiny amounts of data making it easy to check how NORM works.
+ * The tests directory contains the test suite, see [Running the tests](#running-the-tests).
 
 ## Quick Start
 
@@ -47,3 +48,25 @@ The file examples/run_examples.sql demonstrates how to process JSON schemas and 
 For details, consult the [User Guide](documentation/norm-ug.pdf) 
 
 Please be advised that [Small example](small_example) is still a work in progress. The intention is to show an example that does not require postgres_air database installation and to demonstrate the differences (and similarities) between manually written and generated functions. 
+
+## Running the tests
+
+The tests use [pytest](https://pytest.org) and only need [uv](https://docs.astral.sh/uv/getting-started/installation/). Each run starts a throwaway PostgreSQL 16 server from the [pgserver](https://pypi.org/project/pgserver/) package, so you don't need Docker or a local Postgres install. From the repository root:
+
+```sh
+uv run pytest                                # run all tests
+uv run pytest --sql-cov                      # also measure coverage; fails below 90%
+uv run pytest tests/test_to_db.py -k delete  # run a subset
+```
+
+To use an existing server instead, set `NORM_TEST_DSN` to a connection string for a user that can create databases. The tests create a database named `norm_test` there and drop it when they finish:
+
+```sh
+NORM_TEST_DSN="postgresql://postgres@localhost:5432/postgres" uv run pytest
+```
+
+GitHub Actions runs the tests, with and without `--sql-cov`, on every pull request and every push to `master` (see `.github/workflows/tests.yml`).
+
+**Coverage.** `--sql-cov` reports how many statements and `CASE` branches (each `WHEN` and `ELSE`) of every `norm_gen` function the tests ran. `plpgsql_check` only covers PL/pgSQL, and most of NORM is `LANGUAGE sql`, so `tests/sqlcov.py` adds probes to the source as it is loaded. Change the threshold with `--sql-cov-fail-under`. The functions NORM generates at runtime come from string templates, so they aren't counted; the tests check their behaviour instead.
+
+**Known bugs.** Tests marked `xfail` describe behaviour that is broken today. They are strict: when a fix makes one pass, the run fails until its marker is removed.

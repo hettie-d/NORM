@@ -1,0 +1,17 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: Run tests
+        run: uv run pytest
+      - name: Run tests with coverage
+        run: uv run pytest --sql-cov
