@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,4 +18,19 @@ jobs:
       - name: Run tests
         run: uv run pytest
       - name: Run tests with coverage
+        id: coverage
         run: uv run pytest --sql-cov
+      # Shows e.g. "Test results: 95 passed, 4 xfailed, 100.0% coverage" on the commit and the PR.
+      # Pull requests from forks get a read-only token, so they only get the run page summary.
+      - name: Post results to the commit
+        if: >-
+          always() && steps.coverage.outputs.summary &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha || github.sha }}
+          -f context="Test results"
+          -f state=${{ steps.coverage.outcome == 'success' && 'success' || 'failure' }}
+          -f description="${{ steps.coverage.outputs.summary }}"
+          -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -65,7 +65,7 @@ To use an existing server instead, set `NORM_TEST_DSN` to a connection string fo
 NORM_TEST_DSN="postgresql://postgres@localhost:5432/postgres" uv run pytest
 ```
 
-GitHub Actions runs the tests, with and without `--sql-cov`, on every pull request and every push to `master` (see `.github/workflows/tests.yml`).
+GitHub Actions runs the tests, with and without `--sql-cov`, on every pull request and every push to `master` (see `.github/workflows/tests.yml`). The results appear at the top of the workflow run page, and as a "Test results" status on the commit and the pull request.
 
 **Coverage.** `--sql-cov` reports how many statements and `CASE` branches (each `WHEN` and `ELSE`) of every `norm_gen` function the tests ran. `plpgsql_check` only covers PL/pgSQL, and most of NORM is `LANGUAGE sql`, so `tests/sqlcov.py` adds probes to the source as it is loaded. Change the threshold with `--sql-cov-fail-under`. The functions NORM generates at runtime come from string templates, so they aren't counted; the tests check their behaviour instead.
 

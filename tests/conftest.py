@@ -110,11 +110,31 @@ def pytest_sessionfinish(session):
             session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
-def pytest_terminal_summary(terminalreporter, config):
-    if hasattr(config, "sql_cov"):
-        percent, table = config.sql_cov
-        minimum = config.getoption("sql_cov_fail_under")
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    coverage = getattr(config, "sql_cov", None)
+    minimum = config.getoption("sql_cov_fail_under")
+    if coverage:
+        percent, table = coverage
         terminalreporter.section("NORM SQL coverage: statements and CASE branches")
         terminalreporter.write_line(table)
         if percent < minimum:
             terminalreporter.write_line(f"FAIL: coverage is below {minimum:g}%", red=True)
+    if "GITHUB_STEP_SUMMARY" in os.environ:
+        github_summary(terminalreporter.stats, exitstatus == 0, coverage, minimum)
+
+
+def github_summary(stats, passed, coverage, minimum):
+    """Show the results on the GitHub Actions run page, and pass a one-line summary to later steps."""
+    outcomes = ("passed", "failed", "error", "xfailed", "xpassed", "skipped")
+    summary = ", ".join(f"{len(stats[o])} {o}" for o in outcomes if stats.get(o))
+    details = []
+    if coverage:
+        percent, table = coverage
+        passed = passed and percent >= minimum
+        summary += f", {percent:.1f}% coverage"
+        details = ["<details><summary>Coverage by function</summary>", "", "```", table, "```", "</details>"]
+    title = "Tests with coverage" if coverage else "Tests"
+    with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+        f.write("\n".join([f"### {'✅' if passed else '❌'} {title}: {summary}", "", *details, "", ""]))
+    with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+        f.write(f"summary={summary}\n")
