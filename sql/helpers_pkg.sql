@@ -151,8 +151,8 @@ $$
       coalesce(tso.db_table, tso.t_object) ||
       $$ add constraint $$ ||
       coalesce(tso.db_table, tso.t_object) || 
-$$_PK primary key $$ || tso.db_pk_col ||
-   $$;$$   as pk_constraint
+$$_PK primary key ($$ || tso.db_pk_col ||
+   $$);$$   as pk_constraint
 from norm_gen.transfer_schema_object tso
 join norm_gen.transfer_schema ts
    on ts.transfer_schema_id = tso.transfer_schema_id
