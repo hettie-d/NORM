@@ -84,20 +84,11 @@ def test_insert_a_new_parent_with_a_child(db, user_account):
     [new_id] = acct_to_db(db, [{"username": "new2", "phones": [{"phone_number": "555", "phone_type_id": 1}]}])
     assert phones(db, new_id) == ["555"]
 
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="children of a new parent are inserted a second time, with a NULL parent key, "
-    "by the child update step",
-)
 def test_insert_a_new_parent_with_a_child_inserts_the_child_once(db, user_account):
     acct_to_db(db, [{"username": "new3", "phones": [{"phone_number": "556", "phone_type_id": 1}]}])
     assert scalar(db, "select count(*) from norm_small.phone where phone = '556'") == 1
 
 
-@pytest.mark.xfail(
-    strict=True, reason="insert_param pairs children only with the first new parent of each group"
-)
 def test_insert_two_new_parents_with_children(db, user_account):
     acct_to_db(
         db,
