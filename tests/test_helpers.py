@@ -101,7 +101,6 @@ def test_transfer_schema_to_table(db):
     assert columns(db, "norm_draft", "author") == {"author_id": "numeric", "name": "text"}
 
 
-@pytest.mark.xfail(strict=True, reason="pk_constraint omits the parentheses around the column list")
 def test_transfer_schema_to_table_primary_key(db):
     compile_schema(db, AUTHOR)
     table_def, pk_constraint = db.execute(
