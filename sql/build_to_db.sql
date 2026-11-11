@@ -370,7 +370,7 @@ for i in array_lower(rows_in,1)..array_upper(rows_in,1)
 loop
    r_in= rows_in[i];
    V_ch_a:=r_in.%3s;
-   for j in array_lower(v_ch_a,1)..array_lower(v_ch_a,1)
+   for j in array_lower(v_ch_a,1)..array_upper(v_ch_a,1)
    loop
       v_ch:= v_ch_a[j];
       if  v_ch.%2$s  is not null then
