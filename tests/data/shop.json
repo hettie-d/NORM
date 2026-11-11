@@ -1,0 +1,100 @@
+{
+    "title": "shop",
+    "description": "Customers with their orders and order lines",
+    "type": "array",
+    "items": {"$ref": "#/definitions/customer"},
+    "db_mapping": {"db_schema": "norm_shop", "db_prefix": "shop"},
+    "definitions": {
+        "customer": {
+            "type": "object",
+            "db_mapping": {
+                "db_table": "customer",
+                "pk_col": "customer_id",
+                "record_type": "customer_rec",
+                "embedded": [
+                    {"alias": "t", "db_table": "tier", "pk_col": "tier_id", "fk_col": "tier_id"}
+                ]
+            },
+            "properties": {
+                "customer_id": {"type": "number"},
+                "name": {"type": "string"},
+                "name_upper": {
+                    "type": "string",
+                    "db_mapping": {"db_expression": "Y", "db_col": "upper(name)", "db_type": "text"}
+                },
+                "tier_id": {"type": "number"},
+                "tier": {
+                    "type": "string",
+                    "db_mapping": {"db_col": "tier_name", "db_source_alias": "t"}
+                },
+                "joined": {"type": "string", "format": "date"},
+                "orders": {"type": "array", "items": {"$ref": "#/definitions/order"}}
+            }
+        },
+        "order": {
+            "type": "object",
+            "db_mapping": {
+                "db_table": "orders",
+                "pk_col": "order_id",
+                "parent_fk_col": "customer_id",
+                "record_type": "order_rec"
+            },
+            "properties": {
+                "order_id": {"type": "number"},
+                "order_name": {"type": "string"},
+                "placed": {"type": "string", "format": "date-time"},
+                "totals": {
+                    "type": "object",
+                    "items": {"$ref": "#/definitions/totals"},
+                    "db_mapping": {"db_col": "order_id", "fk_col": "order_id"}
+                },
+                "lines": {"type": "array", "items": {"$ref": "#/definitions/line"}}
+            }
+        },
+        "totals": {
+            "type": "object",
+            "db_mapping": {
+                "db_table": "(select order_id, count(*) as line_count, sum(qty) as total_qty from norm_shop.order_line group by order_id)",
+                "db_expression": "Y",
+                "pk_col": "order_id",
+                "record_type": "totals_rec"
+            },
+            "properties": {
+                "line_count": {"type": "number", "db_mapping": {"db_type": "int8"}},
+                "total_qty": {"type": "number", "db_mapping": {"db_type": "int8"}}
+            }
+        },
+        "line": {
+            "type": "object",
+            "db_mapping": {
+                "db_table": "order_line",
+                "pk_col": "line_id",
+                "parent_fk_col": "order_id",
+                "record_type": "line_rec"
+            },
+            "properties": {
+                "line_id": {"type": "number"},
+                "product_id": {"type": "number"},
+                "qty": {"type": "number"},
+                "product": {
+                    "type": "object",
+                    "items": {"$ref": "#/definitions/product"},
+                    "db_mapping": {"db_col": "product_id", "fk_col": "product_id"}
+                }
+            }
+        },
+        "product": {
+            "type": "object",
+            "db_mapping": {
+                "db_table": "product",
+                "pk_col": "product_id",
+                "record_type": "product_rec"
+            },
+            "properties": {
+                "product_id": {"type": "number"},
+                "product_name": {"type": "string"},
+                "unit_price": {"type": "number"}
+            }
+        }
+    }
+}
