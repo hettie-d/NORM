@@ -49,15 +49,20 @@ select format($$ %I IN (
     || row_conds ||   $$) $$;
 $body$;
 
+drop  function if exists norm_gen.build_simple_term;
 create or replace function norm_gen.build_simple_term (
 t_key text,
 t_value text,
 d_col text,
-d_col_type text) returns text
+d_col_type text,
+p_top_alias text default 'top', 
+t_parent text default NULL) returns text
 language SQL as
 $body$
 select 
-     format ($$ %I $$,
+      case when t_parent is null and p_top_alias is not null 
+      then p_top_alias ||$dot$.$dot$ else $sp$ $sp$ end 
+    || format ($$ %I $$,
       coalesce(d_col,$$J_$$ || t_key))
    ||  norm_gen.cond_ops(op)      
    || format ($$ (%L::%I) $$, val,
@@ -167,7 +172,10 @@ from  grand_p
 $body$;
 
 
-create or replace function norm_gen.build_conditions (p_in json)
+drop function if exists norm_gen.build_conditions;
+create or replace function norm_gen.build_conditions (
+   p_in json,
+   p_top_alias text default 'top') -- set to NULL if alias is not needed
 returns text
 language SQL as
 $body$
@@ -187,17 +195,19 @@ select  o1.*
 from norm_gen.transfer_schema_object o1
    join   schema_info si
    on o1.transfer_schema_id = si.transfer_schema_id
----) select * from ts_object;
+---) select t_object, t_parent_object from ts_object;
 ),
 ts_object_key as (
 select  
-  o2.t_object, tk.*
+  o2.t_object, o2. t_parent_object, tk.*
 from norm_gen.transfer_schema_key tk
 join ts_object o2
    on tk.transfer_schema_object_id = o2.transfer_schema_object_id
+--- ) select t_object, t_parent_object, db_col from ts_object_key;
 ),
 tree_node as (
 select 
+'base' as t_parent_object,
 key as parent_node,
 transfer_schema_root_object as node,
 transfer_schema_root_object as t_object,
@@ -212,6 +222,7 @@ join ts_object otr
 on  otr.t_object = s.transfer_schema_root_object
 union
 select
+tk.t_parent_object,
 tn.node as parent_node,
 tk.t_key_name as node,
 tk.ref_object as t_object,
@@ -232,6 +243,7 @@ where tk.t_key_type in ('array', 'object')
 ),
 x_tree as (
 select 
+t_parent_object,
 parent_node, 
 node, 
 t_object, 
@@ -244,6 +256,7 @@ node_type,
 from tree_node
 union
 select  
+tn2.t_parent_object,
 tn2.node as parent_node,
 al. alias, 
 al.alias as t_object,
@@ -258,7 +271,7 @@ tree_node tn2
 join ts_object oa
 on oa.t_object = tn2.t_object,
    unnest (oa.link) al
----)select * from x_tree;
+---) select * from x_tree;
 ),
 px_tree as (
 select
@@ -271,7 +284,8 @@ select
      xt.db_parent_fk_col,
      xt.db_schema, 
      xt.db_pk_col,
-     xt.parent_link_col
+     xt.parent_link_col,
+     xt.t_parent_object
 from x_tree xt
 join schema_info s on xt.parent_node = s.key
 union
@@ -285,7 +299,8 @@ select
      xt.db_parent_fk_col,
      xt.db_schema, 
      xt.db_pk_col,
-     xt.parent_link_col
+     xt.parent_link_col,
+     xt.t_parent_object
 from x_tree xt
     join  px_tree pxt
     on pxt.node= xt.parent_node
@@ -302,7 +317,8 @@ select
      xt.db_parent_fk_col,
      xt.db_schema, 
      xt.db_pk_col,
-     xt.parent_link_col
+     xt.parent_link_col,
+     xt.t_parent_object
 from  px_tree xt, 
   unnest (array[xt.node, xt.parent_node]) u(node)
 UNION
@@ -316,7 +332,8 @@ select
      xt.db_parent_fk_col,
      xt.db_schema, 
      xt.db_pk_col,
-     xt.parent_link_col
+     xt.parent_link_col,
+     xt.t_parent_object
 from       
    px_tree  xt
     join  x_desce dk
@@ -327,13 +344,16 @@ scalar_keys as (
 select  
      tk. t_key_name, 
      coalesce (tk.db_source_alias, tk.t_object) as t_object,
-    tk.db_col, tk.db_type_calc
+    tk.db_col, tk.db_type_calc,
+    tk.db_source_alias,
+    tk.t_parent_object,
+    tk.db_table
 from ts_object_key  tk
 where
     tk.t_key_type not in ('array', 'object')
     and       coalesce (tk.db_source_alias, tk.t_object)  in
     (select t_object from x_desce)
----) select t_object, t_key_name from scalar_keys;
+--) select * from scalar_keys;
 ),
 x_scalar as (
 select 
@@ -343,10 +363,11 @@ select
   sd.t_object,
   sd.node_type, 
      tk. t_key_name, 
-    tk.db_col, tk.db_type_calc
+    tk.db_col, tk.db_type_calc,
+    tk.t_parent_object
 from x_desce sd
 join scalar_keys tk on tk.t_object = sd.t_object
----) select  t_object, t_key_name  from x_scalar;
+---) select  * from x_scalar;
 ),
 all_key_node as (
 select 
@@ -355,7 +376,8 @@ select
    desc_node,
    desc_node as key,
    node_type,
-   t_object  
+   t_object,
+   t_parent_object  
 from x_desce
 union all
 select 
@@ -364,7 +386,8 @@ select
    desc_node,
    t_key_name as key,
    'scalar',
-   t_object  
+   t_object,
+   t_parent_object  
 from x_scalar
 --)select * from all_key_node order by 4,2;
 ),
@@ -375,6 +398,7 @@ select
     k.asc_node,
     k.desc_node,
     k.t_object,
+    k.t_parent_object,
           s.key,
           s.value
 from  schema_info p,
@@ -391,6 +415,7 @@ select
     kr.asc_node,
     kr.desc_node,
     kr.t_object,
+    kr.t_parent_object,
    sr.key as key, 
    sr.value
 from  
@@ -401,7 +426,7 @@ join  all_key_node kr
 where  
  position ('{'in r.value) > 0  
  and kr.asc_node = r.key
----- )select * from raw_conditions;
+---- ) select * from raw_conditions;
 ),
 per_object as (
 select 
@@ -411,7 +436,10 @@ select
      string_agg(
        norm_gen.build_simple_term (
            r.key, 
-        r.value,  t.db_col, t.db_type_calc),
+        r.value,  
+        t.db_col, 
+        t.db_type_calc,
+        p_top_alias,t.t_parent_object),
           $and$
            AND $and$
           )  as conds
