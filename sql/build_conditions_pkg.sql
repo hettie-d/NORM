@@ -27,6 +27,7 @@ else 'UNKNOWN '
 end;
 $body$;
 
+drop function if exists norm_gen.build_object_term;
 create or replace function norm_gen.build_object_term (
 t_par text,    /* parent table */
 t_obj text,   /* this object */
@@ -35,11 +36,13 @@ d_table text,  /* this table */
 d_par_pk text,  /* parent key (to be IN) */
 d_fk text,    /* key in this object to be selected */
 d_schema text,  /* schema name */
-parent_link text
+parent_link text,
+p_alias text default NULL  /* alias of the parent table, if it needs one */
 ) returns text
 language SQL as
 $body$
-select format($$ %I IN (
+select coalesce(p_alias || $dot$.$dot$, $sp$ $sp$)
+    || format($$ %I IN (
    select %I from %s where
    $$,
       coalesce(parent_link, $$PK_$$   || t_par),
@@ -55,7 +58,7 @@ t_key text,
 t_value text,
 d_col text,
 d_col_type text,
-p_top_alias text default 'top', 
+p_top_alias text default NULL, 
 t_parent text default NULL) returns text
 language SQL as
 $body$
@@ -73,8 +76,10 @@ FROM json_each_text(
    end ) as  r(op, val);
 $body$;
 
+drop function if exists norm_gen.nest_cond;
 create or replace function norm_gen.nest_cond ( 
-   c_in norm_gen.cond_record [] ) 
+   c_in norm_gen.cond_record [],
+   p_top_alias text default NULL ) 
    returns norm_gen.cond_record []
 language sql  as
 $body$
@@ -110,7 +115,9 @@ select p.path as path,
        p.node,  c.node, c.cond, 
        c.db_table, p.db_pk_col, 
        c.db_parent_fk_col,
-       c.db_schema, c.parent_link)
+       c.db_schema, c.parent_link,
+       /* the root node is the only one whose path is just the schema key */
+       case when array_length(p.path, 1) = 1 then p_top_alias end)
         as cond
 from set_in p
     join  set_in c
@@ -136,7 +143,7 @@ select
    case 
        when array_length(c_in,1) = 1 then c_in
        when array_length(cond_arr,1) = 1 then cond_arr
-       else norm_gen.nest_cond (cond_arr)
+       else norm_gen.nest_cond (cond_arr, p_top_alias)
        end
 from
 (select array_agg(
@@ -439,7 +446,7 @@ select
         r.value,  
         t.db_col, 
         t.db_type_calc,
-        p_top_alias,t.t_parent_object),
+        case when array_length(r.path, 1) = 1 then p_top_alias end),
           $and$
            AND $and$
           )  as conds
@@ -465,8 +472,8 @@ from unnest (norm_gen.nest_cond (
 from   px_tree xt
 left join per_object po
      on  po.path = xt.path and po.desc_node = xt.node
-     )
-)
+     ),
+p_top_alias)
 );
 $body$;
 
