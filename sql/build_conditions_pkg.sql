@@ -27,6 +27,7 @@ else 'UNKNOWN '
 end;
 $body$;
 
+drop function if exists norm_gen.build_object_term;
 create or replace function norm_gen.build_object_term (
 t_par text,    /* parent table */
 t_obj text,   /* this object */
@@ -35,11 +36,13 @@ d_table text,  /* this table */
 d_par_pk text,  /* parent key (to be IN) */
 d_fk text,    /* key in this object to be selected */
 d_schema text,  /* schema name */
-parent_link text
+parent_link text,
+p_alias text default NULL  /* alias of the parent table, if it needs one */
 ) returns text
 language SQL as
 $body$
-select format($$ %I IN (
+select coalesce(p_alias || $dot$.$dot$, $sp$ $sp$)
+    || format($$ %I IN (
    select %I from %s where
    $$,
       coalesce(parent_link, $$PK_$$   || t_par),
@@ -49,15 +52,20 @@ select format($$ %I IN (
     || row_conds ||   $$) $$;
 $body$;
 
+drop  function if exists norm_gen.build_simple_term;
 create or replace function norm_gen.build_simple_term (
 t_key text,
 t_value text,
 d_col text,
-d_col_type text) returns text
+d_col_type text,
+p_top_alias text default NULL, 
+t_parent text default NULL) returns text
 language SQL as
 $body$
 select 
-     format ($$ %I $$,
+      case when t_parent is null and p_top_alias is not null 
+      then p_top_alias ||$dot$.$dot$ else $sp$ $sp$ end 
+    || format ($$ %I $$,
       coalesce(d_col,$$J_$$ || t_key))
    ||  norm_gen.cond_ops(op)      
    || format ($$ (%L::%I) $$, val,
@@ -68,8 +76,10 @@ FROM json_each_text(
    end ) as  r(op, val);
 $body$;
 
+drop function if exists norm_gen.nest_cond;
 create or replace function norm_gen.nest_cond ( 
-   c_in norm_gen.cond_record [] ) 
+   c_in norm_gen.cond_record [],
+   p_top_alias text default NULL ) 
    returns norm_gen.cond_record []
 language sql  as
 $body$
@@ -105,7 +115,9 @@ select p.path as path,
        p.node,  c.node, c.cond, 
        c.db_table, p.db_pk_col, 
        c.db_parent_fk_col,
-       c.db_schema, c.parent_link)
+       c.db_schema, c.parent_link,
+       /* the root node is the only one whose path is just the schema key */
+       case when array_length(p.path, 1) = 1 then p_top_alias end)
         as cond
 from set_in p
     join  set_in c
@@ -131,7 +143,7 @@ select
    case 
        when array_length(c_in,1) = 1 then c_in
        when array_length(cond_arr,1) = 1 then cond_arr
-       else norm_gen.nest_cond (cond_arr)
+       else norm_gen.nest_cond (cond_arr, p_top_alias)
        end
 from
 (select array_agg(
@@ -167,7 +179,10 @@ from  grand_p
 $body$;
 
 
-create or replace function norm_gen.build_conditions (p_in json)
+drop function if exists norm_gen.build_conditions;
+create or replace function norm_gen.build_conditions (
+   p_in json,
+   p_top_alias text default 'top') -- set to NULL if alias is not needed
 returns text
 language SQL as
 $body$
@@ -187,7 +202,7 @@ select  o1.*
 from norm_gen.transfer_schema_object o1
    join   schema_info si
    on o1.transfer_schema_id = si.transfer_schema_id
----) select * from ts_object;
+---) select t_object,  from ts_object;
 ),
 ts_object_key as (
 select  
@@ -195,6 +210,7 @@ select
 from norm_gen.transfer_schema_key tk
 join ts_object o2
    on tk.transfer_schema_object_id = o2.transfer_schema_object_id
+--- ) select t_object, db_col from ts_object_key;
 ),
 tree_node as (
 select 
@@ -258,7 +274,7 @@ tree_node tn2
 join ts_object oa
 on oa.t_object = tn2.t_object,
    unnest (oa.link) al
----)select * from x_tree;
+---) select * from x_tree;
 ),
 px_tree as (
 select
@@ -327,13 +343,15 @@ scalar_keys as (
 select  
      tk. t_key_name, 
      coalesce (tk.db_source_alias, tk.t_object) as t_object,
-    tk.db_col, tk.db_type_calc
+    tk.db_col, tk.db_type_calc,
+    tk.db_source_alias,
+    tk.db_table
 from ts_object_key  tk
 where
     tk.t_key_type not in ('array', 'object')
     and       coalesce (tk.db_source_alias, tk.t_object)  in
     (select t_object from x_desce)
----) select t_object, t_key_name from scalar_keys;
+--) select * from scalar_keys;
 ),
 x_scalar as (
 select 
@@ -346,7 +364,7 @@ select
     tk.db_col, tk.db_type_calc
 from x_desce sd
 join scalar_keys tk on tk.t_object = sd.t_object
----) select  t_object, t_key_name  from x_scalar;
+---) select  * from x_scalar;
 ),
 all_key_node as (
 select 
@@ -355,7 +373,7 @@ select
    desc_node,
    desc_node as key,
    node_type,
-   t_object  
+   t_object 
 from x_desce
 union all
 select 
@@ -364,7 +382,7 @@ select
    desc_node,
    t_key_name as key,
    'scalar',
-   t_object  
+   t_object     
 from x_scalar
 --)select * from all_key_node order by 4,2;
 ),
@@ -375,8 +393,8 @@ select
     k.asc_node,
     k.desc_node,
     k.t_object,
-          s.key,
-          s.value
+    s.key,
+    s.value
 from  schema_info p,
      json_each_text (p.value::json) s
 join  all_key_node k
@@ -391,7 +409,7 @@ select
     kr.asc_node,
     kr.desc_node,
     kr.t_object,
-   sr.key as key, 
+    sr.key as key, 
    sr.value
 from  
     raw_conditions r,
@@ -401,7 +419,7 @@ join  all_key_node kr
 where  
  position ('{'in r.value) > 0  
  and kr.asc_node = r.key
----- )select * from raw_conditions;
+---- ) select * from raw_conditions;
 ),
 per_object as (
 select 
@@ -411,7 +429,10 @@ select
      string_agg(
        norm_gen.build_simple_term (
            r.key, 
-        r.value,  t.db_col, t.db_type_calc),
+        r.value,  
+        t.db_col, 
+        t.db_type_calc,
+        case when array_length(r.path, 1) = 1 then p_top_alias end),
           $and$
            AND $and$
           )  as conds
@@ -437,8 +458,8 @@ from unnest (norm_gen.nest_cond (
 from   px_tree xt
 left join per_object po
      on  po.path = xt.path and po.desc_node = xt.node
-     )
-)
+     ),
+p_top_alias)
 );
 $body$;
 

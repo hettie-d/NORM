@@ -72,7 +72,7 @@ def test_build_conditions_nests_child_conditions(db, shop):
     condition = {"shop": {"orders": {"lines": {"product": {"product_name": "plum"}}}}}
     sql = scalar(db, "select norm_gen.build_conditions(%s)", (Json(condition),))
     assert squash(sql) == (
-        "customer_id IN ( select customer_id from norm_shop.orders where"
+        "top. customer_id IN ( select customer_id from norm_shop.orders where"
         " order_id IN ( select order_id from norm_shop.order_line where"
         " product_id IN ( select product_id from norm_shop.product where"
         " product_name = ('plum'::text) ) ) )"
@@ -83,8 +83,8 @@ def test_build_conditions_joins_terms_with_and(db, shop):
     condition = {"shop": {"tier": "gold", "name": {"$like": "A%"}}}
     sql = scalar(db, "select norm_gen.build_conditions(%s)", (Json(condition),))
     assert sorted(squash(term) for term in sql.split("\nAND ")) == [
-        "name LIKE ('A%'::text)",
-        "tier_id IN ( select tier_id from norm_shop.tier where tier_name = ('gold'::text) )",
+        "top. name LIKE ('A%'::text)",
+        "top. tier_id IN ( select tier_id from norm_shop.tier where tier_name = ('gold'::text) )",
     ]
 
 
@@ -114,16 +114,7 @@ def test_from_db(db, user_account, condition, expected):
 @pytest.mark.parametrize(
     "condition, expected",
     [
-        pytest.param(
-            {"tier": "gold"},
-            ["Ann"],
-            marks=pytest.mark.xfail(
-                raises=psycopg.errors.AmbiguousColumn,
-                strict=True,
-                reason="root-level conditions use unqualified column names, which are "
-                "ambiguous when an embedded table has a column with the same name",
-            ),
-        ),
+        ({"tier": "gold"}, ["Ann"]),
         ({"name": "Bob", "orders": {"order_name": "B1"}}, ["Bob"]),
         ({"orders": {"lines": {"qty": {"$ge": 5}}}}, ["Ann"]),
         ({"orders": {"lines": {"product": {"product_name": "apple"}}}}, ["Ann", "Bob"]),
