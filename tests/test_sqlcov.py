@@ -123,6 +123,23 @@ def test_report(db, cov):
     assert table.splitlines()[-1].split() == ["TOTAL", "8", "5", "6", "53.8%"]
 
 
+def test_empty_statements_get_no_probe(db):
+    source = """\
+create schema cov_demo;
+create function cov_demo.two() returns int language sql
+begin atomic;
+  select 2;;
+end;
+"""
+    cov = Instrumenter(schemas=("cov_demo",), probe_schema="cov_selftest")
+    text = cov.instrument(source, "demo.sql")
+    db.execute(cov.setup_sql())
+    db.execute(text)
+    assert db.execute("select cov_demo.two()").fetchone()[0] == 2
+    assert probes(cov) == [("cov_demo.two", "statement", 4, "")]
+    assert probes(cov, cov.hits(db)) == [("cov_demo.two", "statement", 4, "")]
+
+
 def test_a_redefined_function_is_counted_once():
     cov = Instrumenter(schemas=("cov_demo",))
     cov.instrument(SOURCE, "first.sql")
