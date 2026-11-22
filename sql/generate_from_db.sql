@@ -26,6 +26,9 @@ join norm_gen.transfer_schema_key k
 on k.transfer_schema_object_id=o.transfer_schema_object_id
 and o.db_pk_col= k.db_col
 where s.transfer_schema_name=p_schema_name;
+if v_name is null then
+   return $$ERROR:Invalid schema name: $$ || p_schema_name;
+end if;
 ------
 v_func := format( 
 $fmt$create or replace function %1$s (
