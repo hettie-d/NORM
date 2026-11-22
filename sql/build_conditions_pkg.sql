@@ -195,7 +195,8 @@ transfer_schema_id,
 transfer_schema_root_object
 from json_each_text (p_in)  q_in
  join norm_gen.transfer_schema ts
- on q_in.key = ts.transfer_schema_name
+    on q_in.key = ts.transfer_schema_name
+ where q_in.key not in ('$OrderBy','$Limit','$Offset')
 ),
 ts_object as (
 select  o1.*

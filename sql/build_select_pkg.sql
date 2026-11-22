@@ -103,24 +103,33 @@ order by  key_position) k
 )
 || $$)::$$  || 
 (select
- norm_schema ||  $dot$.$dot$ || db_prefix || $$_$$ || p_row_type || $$)$$
+ norm_schema ||  $dot$.$dot$ || db_prefix || $$_$$ || p_row_type ||
+  $$)  $$ || p_alias ||$$_row  $$
 from norm_gen.transfer_schema
 where transfer_schema_id = p_schema_id)
         as nested_object;
 $body$;
 
+drop function if exists norm_gen.nested_root;
 drop function if exists norm_gen.build_nested_select_clause;
+
 create or replace function norm_gen.build_nested_select_clause(
-   p_hierarchy text) returns text
+   p_hierarchy text, 
+   p_agg text =$$array_agg$$, p_top_alias text =$$top$$) returns text
    language SQL as
    $body$
    select 
    $$ /* selecting $$ || p_hierarchy ||$$ $$ || transfer_schema_root_object || $$ */
- select  
-           array_agg( 
+ select  $$ || p_agg ||  
+       $$( 
    $$ 
-   ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, $$top$$::text,  tso.db_pk_col)
-   || norm_gen.build_from_clause(tso.db_schema,tso.db_table,$$top$$, tso.link)
+   ||  norm_gen.build_nested_row(s.transfer_schema_id,  tso.transfer_schema_object_id, tso.db_record_type, 
+   p_top_alias,  
+   tso.db_pk_col)
+   || norm_gen.build_from_clause(
+   tso.db_schema,tso.db_table,
+   p_top_alias, 
+   tso.link)
    from norm_gen.transfer_schema s
    join norm_gen.transfer_schema_object tso
        on tso.transfer_schema_id = s.transfer_schema_id
@@ -128,11 +137,9 @@ create or replace function norm_gen.build_nested_select_clause(
    where s.transfer_schema_name = p_hierarchy;
    $body$;
    
-drop function if exists norm_gen.nested_root;
 create or replace function norm_gen.nested_root(
    p_hierarchy text) returns text
-   language SQL as
-$body$
-select norm_gen.build_nested_select_clause(p_hierarchy);
-$body$;
-
+   language SQL 
+begin atomic;
+select norm_gen.build_nested_select_clause(p_hierarchy, ' ');
+end;

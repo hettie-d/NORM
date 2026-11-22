@@ -125,11 +125,35 @@ def test_from_db_three_levels_and_objects(db, shop, condition, expected):
     assert search(db, "norm_shop.shop_from_db", "shop", condition, "name") == expected
 
 
+@pytest.mark.parametrize(
+    "options, expected",
+    [
+        ({"shop": {}, "$OrderBy": ["name"]}, ["Ann", "Bob"]),
+        ({"shop": {}, "$OrderBy": [{"name": "DESC"}]}, ["Bob", "Ann"]),
+        ({"shop": {}, "$OrderBy": ["tier"]}, ["Ann", "Bob"]),  # gold < standard
+        ({"shop": {}, "$OrderBy": [{"joined": "DESC"}], "$Limit": 1}, ["Bob"]),
+        ({"shop": {}, "$OrderBy": ["name"], "$Limit": 1, "$Offset": 1}, ["Bob"]),
+        ({"shop": {"tier": "gold"}, "$OrderBy": [{"name": "DESC"}]}, ["Ann"]),
+        ({"shop": {"orders": {"order_name": "B1"}}, "$OrderBy": ["name"]}, ["Bob"]),
+    ],
+    ids=["asc", "desc", "embedded", "limit", "limit-offset", "with-condition", "with-child-condition"],
+)
+def test_from_db_order_by_limit_offset(db, shop, options, expected):
+    """$OrderBy, $Limit and $Offset decide which customers come back, and in what order."""
+    names = column(
+        db,
+        "select r.name from unnest(norm_shop.shop_from_db(%s)) with ordinality r order by ordinality",
+        (Json(options),),
+    )
+    assert names == expected
+
+
 def test_from_db_on_a_single_object_schema(db):
     schema = scalar(db, "select norm_gen.table_to_transfer_schema('norm_shop', 'product', 'product_only')")
     compile_schema(db, schema)
     db.execute("select norm_gen.create_generated_types('product_only')")
-    assert scalar(db, "select norm_gen.generate_from_db('product_only')") == "norm_shop.product_from_db"
+    result = scalar(db, "select norm_gen.generate_from_db('product_only')")
+    assert result.strip() == "Function: norm_shop.product_from_db, Return type: norm_shop.product_product_row []"
     found = search(db, "norm_shop.product_from_db", "product_only", {"product_name": "pear"}, "product_name")
     assert found == ["pear"]
 

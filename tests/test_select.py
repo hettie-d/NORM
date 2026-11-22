@@ -86,7 +86,7 @@ def test_build_nested_row(db):
     )
     sql = squash(sql)
     assert sql.startswith("/* Entering account_record */ row(top.account_id , top.username ,")
-    assert sql.endswith(")::norm_small.acct_account_record)")
+    assert sql.endswith(")::norm_small.acct_account_record) top_row")
     # An array key becomes a sub-select on the child table, joined to its lookups.
     assert "join norm_small.phone_type pt on pt.phone_type_id = phones.phone_type_id" in sql
     assert "where top.account_id = phones.account_id" in sql
@@ -95,8 +95,9 @@ def test_build_nested_row(db):
 def test_nested_root(db):
     compile_schema(db, USER_ACCOUNT_JSON)
     sql = scalar(db, "select norm_gen.nested_root('user_account')")
-    assert sql == scalar(db, "select norm_gen.build_nested_select_clause('user_account')")
-    assert squash(sql).startswith("/* selecting user_account account */ select array_agg(")
+    # The root rows are selected one per row, without array_agg.
+    assert sql == scalar(db, "select norm_gen.build_nested_select_clause('user_account', ' ')")
+    assert squash(sql).startswith("/* selecting user_account account */ select ( /* Entering account_record */")
     assert squash(sql).endswith("from norm_small.account top")
 
 
