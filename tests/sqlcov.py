@@ -149,6 +149,8 @@ class Instrumenter:
 
     def _sql_statements(self, fn, body, offset):
         for prev, token in zip([None, *body], body):
+            if token.name == "ASCII_59":  # an empty statement, as in "begin atomic;"
+                continue
             if prev is None or prev.name == "ASCII_59":  # first token, or after ";"
                 self._statement(fn, offset + token.start, "select")
 
